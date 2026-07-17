@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>form-components dev harness</title>
+    <script type="module" src="/build/wb-form.esm.js"></script>
+    <script nomodule src="/build/wb-form.js"></script>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; }
+      .layout { display: flex; gap: 16px; align-items: flex-start; }
+      wb-palette { flex: 0 0 180px; }
+      wb-canvas { flex: 1; }
+      pre { background: #1c1c1a; color: #d9d9d3; padding: 12px; border-radius: 8px; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>form-components dev harness</h1>
+    <p>Manual smoke test: click a palette item to add a field, drag the grip handle to reorder, submit the form.</p>
+
+    <form id="demo-form">
+      <div class="layout">
+        <wb-palette></wb-palette>
+        <wb-canvas id="canvas"></wb-canvas>
+      </div>
+      <p>
+        <wb-form-field name="standalone.note" label="A standalone form-associated field" required></wb-form-field>
+      </p>
+      <button type="submit">Submit</button>
+      <button type="reset">Reset</button>
+    </form>
+
+    <div>Last wbChange payload:</div>
+    <pre id="out">—</pre>
+
+    <script>
+      const canvas = document.getElementById('canvas');
+      const out = document.getElementById('out');
+      const form = document.getElementById('demo-form');
+
+      document.querySelector('wb-palette').addEventListener('wbAddField', (e) => {
+        canvas.addField(e.detail.type, e.detail.label);
+      });
+      canvas.addEventListener('wbChange', (e) => {
+        out.textContent = JSON.stringify(e.detail, null, 2);
+      });
+      canvas.addEventListener('wbFieldSelected', (e) => {
+        console.log('selected field', e.detail);
+      });
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+        out.textContent = JSON.stringify(Object.fromEntries(fd.entries()), null, 2);
+      });
+    </script>
+  </body>
+</html>
