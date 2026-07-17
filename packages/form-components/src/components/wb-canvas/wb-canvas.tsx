@@ -1,11 +1,5 @@
-import { Component, State, Method, Event, EventEmitter, h } from '@stencil/core';
-import type { FieldType } from '../wb-form-field/wb-form-field';
-
-interface FieldMeta {
-  id: number;
-  type: FieldType;
-  label: string;
-}
+import { Component, State, Method, Event, EventEmitter, Fragment, h } from '@stencil/core';
+import type { FieldMeta } from '../../../../form-core/src/types';
 
 let uid = 0;
 
@@ -31,9 +25,13 @@ export class WbCanvas {
   ];
   @State() hoverIndex: number | null = null;
   @State() draggingId: number | null = null;
+  @State() externalDrag = false;
+  @State() selectedId: number | null = null;
 
   @Event() wbChange: EventEmitter<FieldMeta[]>;
   @Event() wbFieldSelected: EventEmitter<FieldMeta>;
+  @Event() wbFieldDeselected: EventEmitter<void>;
+  @Event() wbFieldUpdated: EventEmitter<{ id: number; patch: Partial<FieldMeta> }>;
 
   private listEl?: HTMLDivElement;
   private ghostEl?: HTMLDivElement;
@@ -41,9 +39,69 @@ export class WbCanvas {
   private raf: number | null = null;
 
   @Method()
-  async addField(type: FieldType, label: string) {
+  async addField(type: FieldMeta['type'], label: string) {
     this.fields = [...this.fields, { id: ++uid, type, label }];
     this.wbChange.emit(this.fields);
+  }
+
+  @Method()
+  async selectField(id: number | null) {
+    this.selectedId = id;
+  }
+
+  @Method()
+  async updateField(id: number, patch: Partial<FieldMeta>) {
+    const idx = this.fields.findIndex((f) => f.id === id);
+    if (idx === -1) return;
+    const next = [...this.fields];
+    next[idx] = { ...next[idx], ...patch, id };
+    this.fields = next;
+    this.wbFieldUpdated.emit({ id, patch });
+    this.wbChange.emit(this.fields);
+  }
+
+  @Method()
+  async beginExternalDrag() {
+    if (this.draggingId !== null) {
+      this.cancelExternalDrag();
+    }
+    this.externalDrag = true;
+  }
+
+  @Method()
+  async setExternalHoverIndex(y: number) {
+    if (!this.externalDrag) return;
+    if (!this.listEl) {
+      this.hoverIndex = null;
+      return;
+    }
+    const rect = this.listEl.getBoundingClientRect();
+    if (y < rect.top || y > rect.bottom) {
+      this.hoverIndex = null;
+      return;
+    }
+    this.hoverIndex = this.getInsertionIndex(y);
+    this.autoScrollCheck(y);
+  }
+
+  @Method()
+  async commitExternalInsert(type: FieldMeta['type'], label: string) {
+    const idx = this.hoverIndex !== null ? this.hoverIndex : this.fields.length;
+    const next = [...this.fields];
+    next.splice(idx, 0, { id: ++uid, type, label });
+    this.fields = next;
+    this.wbChange.emit(this.fields);
+    this.externalDrag = false;
+    this.hoverIndex = null;
+  }
+
+  @Method()
+  async cancelExternalDrag() {
+    this.externalDrag = false;
+    this.scrollDir = 0;
+    if (this.raf) cancelAnimationFrame(this.raf);
+    this.raf = null;
+    this.hoverIndex = null;
   }
 
   private getInsertionIndex(y: number): number {
@@ -55,6 +113,20 @@ export class WbCanvas {
     }
     return rows.length;
   }
+
+  private onRowClick = (field: FieldMeta) => {
+    this.selectedId = field.id;
+    this.wbFieldSelected.emit(field);
+  };
+
+  private onWrapClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-row]')) return;
+    if (this.selectedId !== null) {
+      this.selectedId = null;
+      this.wbFieldDeselected.emit();
+    }
+  };
 
   private startDrag = (field: FieldMeta, e: PointerEvent) => {
     const handle = e.currentTarget as HTMLElement;
@@ -122,15 +194,15 @@ export class WbCanvas {
 
   render() {
     return (
-      <div class="wrap" ref={(el) => (this.listEl = el)}>
+      <div class="wrap" ref={(el) => (this.listEl = el)} onClick={this.onWrapClick}>
         {this.fields.map((f, idx) => (
-          <>
+          <Fragment>
             {this.hoverIndex === idx && <div class="indicator" />}
             <div
-              class={{ row: true, dragging: this.draggingId === f.id }}
+              class={{ row: true, dragging: this.draggingId === f.id, selected: this.selectedId === f.id }}
               data-row
               key={f.id}
-              onClick={() => this.wbFieldSelected.emit(f)}
+              onClick={() => this.onRowClick(f)}
             >
               <span class="handle" onPointerDown={(e) => this.startDrag(f, e)}>
                 ⠿
@@ -138,7 +210,7 @@ export class WbCanvas {
               <span class="body">{f.label}</span>
               <span class="type">{f.type}</span>
             </div>
-          </>
+          </Fragment>
         ))}
         {this.hoverIndex === this.fields.length && <div class="indicator" />}
       </div>

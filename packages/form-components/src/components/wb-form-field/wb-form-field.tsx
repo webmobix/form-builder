@@ -1,6 +1,5 @@
 import { Component, Prop, State, AttachInternals, Watch, h } from '@stencil/core';
-
-export type FieldType = 'text' | 'select' | 'date' | 'checkbox';
+import type { FieldType, FieldSubtype, Restrictions } from '../../../../form-core/src/types';
 
 /**
  * Renders ONE field from the JSON Schema / UI Schema pair and participates
@@ -26,6 +25,8 @@ export class WbFormField {
   @Prop() type: FieldType = 'text';
   @Prop() label!: string;
   @Prop() required = false;
+  @Prop() subtype?: FieldSubtype;
+  @Prop() restrictions?: Restrictions;
 
   @State() value = '';
   @State() checked = false;
@@ -46,12 +47,38 @@ export class WbFormField {
     const raw = this.type === 'checkbox' ? (this.checked ? 'on' : '') : this.value;
     const fd = new FormData();
     fd.append(this.name, raw);
-    this.internals.setFormValue(fd);
+    if (typeof this.internals.setFormValue === 'function') {
+      this.internals.setFormValue(fd);
+    }
+
+    const validity: ValidityStateFlags = {};
+    let message = '';
 
     if (this.required && !raw) {
-      this.internals.setValidity({ valueMissing: true }, `${this.label} is required`, this.inputEl);
-    } else {
-      this.internals.setValidity({});
+      validity.valueMissing = true;
+      message = `${this.label} is required`;
+    }
+
+    if (raw && this.type === 'text') {
+      const subtype = this.subtype || 'text';
+      if (subtype === 'number' && this.restrictions?.number) {
+        const num = Number(raw);
+        const r = this.restrictions.number;
+        if (!isNaN(num)) {
+          if (r.min !== undefined && num < r.min) {
+            validity.rangeUnderflow = true;
+            message = `${this.label} must be at least ${r.min}`;
+          }
+          if (r.max !== undefined && num > r.max) {
+            validity.rangeOverflow = true;
+            message = `${this.label} must be at most ${r.max}`;
+          }
+        }
+      }
+    }
+
+    if (typeof this.internals.setValidity === 'function') {
+      this.internals.setValidity(validity, message || undefined, this.inputEl);
     }
   }
 
@@ -70,6 +97,17 @@ export class WbFormField {
     if (this.inputEl) this.inputEl.disabled = disabled;
   }
 
+  private getInputType(): string {
+    if (this.type === 'date') return 'date';
+    if (this.type === 'checkbox') return 'checkbox';
+    if (this.type === 'text') {
+      const subtype = this.subtype || 'text';
+      if (subtype === 'number') return 'number';
+      return subtype;
+    }
+    return 'text';
+  }
+
   render() {
     if (this.type === 'checkbox') {
       return (
@@ -85,12 +123,20 @@ export class WbFormField {
       );
     }
 
+    const inputType = this.getInputType();
+    const isNumber = inputType === 'number';
+    const r = isNumber ? this.restrictions?.number : undefined;
+
     return (
       <label class="wb-field">
         <span class="wb-field__label">{this.label}</span>
         <input
-          type={this.type === 'date' ? 'date' : 'text'}
+          type={inputType}
           ref={(el) => (this.inputEl = el)}
+          min={r?.min !== undefined ? r.min : undefined}
+          max={r?.max !== undefined ? r.max : undefined}
+          step={r?.step !== undefined ? r.step : undefined}
+          maxLength={!isNumber ? this.restrictions?.text?.maxLength : undefined}
           value={this.value}
           onInput={this.onInput}
         />

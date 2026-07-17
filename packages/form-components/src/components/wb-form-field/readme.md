@@ -23,6 +23,8 @@ see the collision risk noted after the ElementInternals spike.
 | `label` _(required)_ | `label`    |                                                                          | `string`                                     | `undefined` |
 | `name` _(required)_  | `name`     | JSON Pointer path used as the form-submission key, e.g. "personal.email" | `string`                                     | `undefined` |
 | `required`           | `required` |                                                                          | `boolean`                                    | `false`     |
+| `restrictions`       | --         |                                                                          | `Restrictions`                               | `undefined` |
+| `subtype`            | `subtype`  |                                                                          | `"email" \| "number" \| "tel" \| "text"`     | `undefined` |
 | `type`               | `type`     |                                                                          | `"checkbox" \| "date" \| "select" \| "text"` | `'text'`    |
 
 

@@ -18,15 +18,17 @@ key stays stable across the reorder.
 
 ## Events
 
-| Event             | Description | Type                       |
-| ----------------- | ----------- | -------------------------- |
-| `wbChange`        |             | `CustomEvent<FieldMeta[]>` |
-| `wbFieldSelected` |             | `CustomEvent<FieldMeta>`   |
+| Event               | Description | Type                                                      |
+| ------------------- | ----------- | --------------------------------------------------------- |
+| `wbChange`          |             | `CustomEvent<FieldMeta[]>`                                |
+| `wbFieldDeselected` |             | `CustomEvent<void>`                                       |
+| `wbFieldSelected`   |             | `CustomEvent<FieldMeta>`                                  |
+| `wbFieldUpdated`    |             | `CustomEvent<{ id: number; patch: Partial<FieldMeta>; }>` |
 
 
 ## Methods
 
-### `addField(type: FieldType, label: string) => Promise<void>`
+### `addField(type: FieldMeta["type"], label: string) => Promise<void>`
 
 
 
@@ -36,6 +38,92 @@ key stays stable across the reorder.
 | ------- | -------------------------------------------- | ----------- |
 | `type`  | `"select" \| "text" \| "date" \| "checkbox"` |             |
 | `label` | `string`                                     |             |
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `beginExternalDrag() => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `cancelExternalDrag() => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `commitExternalInsert(type: FieldMeta["type"], label: string) => Promise<void>`
+
+
+
+#### Parameters
+
+| Name    | Type                                         | Description |
+| ------- | -------------------------------------------- | ----------- |
+| `type`  | `"select" \| "text" \| "date" \| "checkbox"` |             |
+| `label` | `string`                                     |             |
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `selectField(id: number | null) => Promise<void>`
+
+
+
+#### Parameters
+
+| Name | Type     | Description |
+| ---- | -------- | ----------- |
+| `id` | `number` |             |
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `setExternalHoverIndex(y: number) => Promise<void>`
+
+
+
+#### Parameters
+
+| Name | Type     | Description |
+| ---- | -------- | ----------- |
+| `y`  | `number` |             |
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `updateField(id: number, patch: Partial<FieldMeta>) => Promise<void>`
+
+
+
+#### Parameters
+
+| Name    | Type                                                                                                     | Description |
+| ------- | -------------------------------------------------------------------------------------------------------- | ----------- |
+| `id`    | `number`                                                                                                 |             |
+| `patch` | `{ id?: number; type?: FieldType; label?: string; subtype?: TextSubtype; restrictions?: Restrictions; }` |             |
 
 #### Returns
 

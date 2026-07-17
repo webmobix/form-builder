@@ -26,6 +26,11 @@
   opacity: 0.35;
 }
 
+.row.selected {
+  border-color: #2f6fed;
+  box-shadow: 0 0 0 1px #2f6fed;
+}
+
 .handle {
   touch-action: none;
   color: #aaa;

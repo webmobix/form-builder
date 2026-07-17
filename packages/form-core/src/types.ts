@@ -42,3 +42,32 @@ export interface FormDefinition {
   dataSchema: JsonSchema;
   uiSchema: UiSchemaElement;
 }
+
+export type FieldType = 'text' | 'select' | 'date' | 'checkbox';
+
+export type TextSubtype = 'text' | 'number' | 'email' | 'tel';
+
+export type FieldSubtype = TextSubtype;
+
+export interface NumberRestrictions {
+  min?: number;
+  max?: number;
+  step?: number;
+}
+
+export interface TextRestrictions {
+  maxLength?: number;
+}
+
+export interface Restrictions {
+  number?: NumberRestrictions;
+  text?: TextRestrictions;
+}
+
+export interface FieldMeta {
+  id: number;
+  type: FieldType;
+  label: string;
+  subtype?: FieldSubtype;
+  restrictions?: Restrictions;
+}

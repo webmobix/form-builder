@@ -7,21 +7,23 @@
     <script type="module" src="/build/wb-form.esm.js"></script>
     <script nomodule src="/build/wb-form.js"></script>
     <style>
-      body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; }
+      body { font-family: system-ui, sans-serif; max-width: 960px; margin: 40px auto; }
       .layout { display: flex; gap: 16px; align-items: flex-start; }
       wb-palette { flex: 0 0 180px; }
       wb-canvas { flex: 1; }
+      wb-inspector { flex: 0 0 260px; }
       pre { background: #1c1c1a; color: #d9d9d3; padding: 12px; border-radius: 8px; font-size: 12px; }
     </style>
   </head>
   <body>
     <h1>form-components dev harness</h1>
-    <p>Manual smoke test: click a palette item to add a field, drag the grip handle to reorder, submit the form.</p>
+    <p>Manual smoke test: click a palette item to add a field, drag the grip handle to reorder, select a row to edit in the inspector, submit the form.</p>
 
     <form id="demo-form">
       <div class="layout">
         <wb-palette></wb-palette>
         <wb-canvas id="canvas"></wb-canvas>
+        <wb-inspector id="inspector"></wb-inspector>
       </div>
       <p>
         <wb-form-field name="standalone.note" label="A standalone form-associated field" required></wb-form-field>
@@ -33,19 +35,53 @@
     <div>Last wbChange payload:</div>
     <pre id="out">—</pre>
 
+    <div>Selected field ID:</div>
+    <pre id="selected">—</pre>
+
     <script>
+      const palette = document.querySelector('wb-palette');
       const canvas = document.getElementById('canvas');
+      const inspector = document.getElementById('inspector');
       const out = document.getElementById('out');
+      const selected = document.getElementById('selected');
       const form = document.getElementById('demo-form');
 
-      document.querySelector('wb-palette').addEventListener('wbAddField', (e) => {
+      let selectedId = null;
+
+      palette.addEventListener('wbAddField', (e) => {
         canvas.addField(e.detail.type, e.detail.label);
+      });
+      palette.addEventListener('wbPaletteDragStart', (e) => {
+        canvas.beginExternalDrag();
+      });
+      palette.addEventListener('wbPaletteDragMove', (e) => {
+        canvas.setExternalHoverIndex(e.detail.clientY);
+      });
+      palette.addEventListener('wbPaletteDragEnd', (e) => {
+        if (e.detail) {
+          canvas.commitExternalInsert(e.detail.type, e.detail.label);
+        } else {
+          canvas.cancelExternalDrag();
+        }
       });
       canvas.addEventListener('wbChange', (e) => {
         out.textContent = JSON.stringify(e.detail, null, 2);
       });
       canvas.addEventListener('wbFieldSelected', (e) => {
-        console.log('selected field', e.detail);
+        selectedId = e.detail.id;
+        selected.textContent = String(selectedId);
+        inspector.setField(e.detail);
+      });
+      canvas.addEventListener('wbFieldDeselected', () => {
+        selectedId = null;
+        selected.textContent = '—';
+        inspector.setField(null);
+      });
+      canvas.addEventListener('wbFieldUpdated', (e) => {
+        out.textContent = JSON.stringify(e.detail, null, 2);
+      });
+      inspector.addEventListener('wbFieldUpdated', (e) => {
+        canvas.updateField(e.detail.id, e.detail.patch);
       });
       form.addEventListener('submit', (e) => {
         e.preventDefault();

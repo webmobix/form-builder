@@ -5,10 +5,8 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { FieldType } from "./components/wb-form-field/wb-form-field";
-import { FieldType as FieldType1 } from "./components/wb-form-field/wb-form-field";
-export { FieldType } from "./components/wb-form-field/wb-form-field";
-export { FieldType as FieldType1 } from "./components/wb-form-field/wb-form-field";
+import { FieldMeta, FieldSubtype, FieldType, Restrictions } from "../../form-core/src/types";
+export { FieldMeta, FieldSubtype, FieldType, Restrictions } from "../../form-core/src/types";
 export namespace Components {
     /**
      * Reorderable field list. Ported from the standalone touch-drag spike.
@@ -20,7 +18,13 @@ export namespace Components {
      * key stays stable across the reorder.
      */
     interface WbCanvas {
-        "addField": (type: FieldType, label: string) => Promise<void>;
+        "addField": (type: FieldMeta["type"], label: string) => Promise<void>;
+        "beginExternalDrag": () => Promise<void>;
+        "cancelExternalDrag": () => Promise<void>;
+        "commitExternalInsert": (type: FieldMeta["type"], label: string) => Promise<void>;
+        "selectField": (id: number | null) => Promise<void>;
+        "setExternalHoverIndex": (y: number) => Promise<void>;
+        "updateField": (id: number, patch: Partial<FieldMeta>) => Promise<void>;
     }
     /**
      * Renders ONE field from the JSON Schema / UI Schema pair and participates
@@ -41,28 +45,30 @@ export namespace Components {
           * @default false
          */
         "required": boolean;
+        "restrictions"?: Restrictions;
+        "subtype"?: FieldSubtype;
         /**
           * @default 'text'
          */
-        "type": FieldType1;
+        "type": FieldType;
     }
-    /**
-     * Tap-to-add palette. This is the interaction validated in the mobile
-     * FAB-and-sheet spike (tap a type, it's appended to the canvas) — it works
-     * identically here whether triggered by a real FAB/sheet shell on mobile or
-     * a plain click on desktop.
-     * Desktop drag-from-palette straight onto the canvas (the cross-shadow-
-     * boundary drag validated in the first spike) is intentionally not wired up
-     * yet — worth adding once the tap-to-add path is confirmed against real
-     * form-core schema output, since it's an enhancement layered on the same
-     * wbAddField event rather than a different data path.
-     */
+    interface WbInspector {
+        /**
+          * @default null
+         */
+        "field": FieldMeta | null;
+        "setField": (field: FieldMeta | null) => Promise<void>;
+    }
     interface WbPalette {
     }
 }
 export interface WbCanvasCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLWbCanvasElement;
+}
+export interface WbInspectorCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLWbInspectorElement;
 }
 export interface WbPaletteCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -72,6 +78,8 @@ declare global {
     interface HTMLWbCanvasElementEventMap {
         "wbChange": FieldMeta[];
         "wbFieldSelected": FieldMeta;
+        "wbFieldDeselected": void;
+        "wbFieldUpdated": { id: number; patch: Partial<FieldMeta> };
     }
     /**
      * Reorderable field list. Ported from the standalone touch-drag spike.
@@ -111,20 +119,29 @@ declare global {
         prototype: HTMLWbFormFieldElement;
         new (): HTMLWbFormFieldElement;
     };
+    interface HTMLWbInspectorElementEventMap {
+        "wbFieldUpdated": { id: number; patch: Partial<FieldMeta> };
+    }
+    interface HTMLWbInspectorElement extends Components.WbInspector, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLWbInspectorElementEventMap>(type: K, listener: (this: HTMLWbInspectorElement, ev: WbInspectorCustomEvent<HTMLWbInspectorElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLWbInspectorElementEventMap>(type: K, listener: (this: HTMLWbInspectorElement, ev: WbInspectorCustomEvent<HTMLWbInspectorElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLWbInspectorElement: {
+        prototype: HTMLWbInspectorElement;
+        new (): HTMLWbInspectorElement;
+    };
     interface HTMLWbPaletteElementEventMap {
         "wbAddField": FieldTypeDef;
+        "wbPaletteDragStart": FieldTypeDef;
+        "wbPaletteDragMove": { clientX: number; clientY: number };
+        "wbPaletteDragEnd": FieldTypeDef | null;
     }
-    /**
-     * Tap-to-add palette. This is the interaction validated in the mobile
-     * FAB-and-sheet spike (tap a type, it's appended to the canvas) — it works
-     * identically here whether triggered by a real FAB/sheet shell on mobile or
-     * a plain click on desktop.
-     * Desktop drag-from-palette straight onto the canvas (the cross-shadow-
-     * boundary drag validated in the first spike) is intentionally not wired up
-     * yet — worth adding once the tap-to-add path is confirmed against real
-     * form-core schema output, since it's an enhancement layered on the same
-     * wbAddField event rather than a different data path.
-     */
     interface HTMLWbPaletteElement extends Components.WbPalette, HTMLStencilElement {
         addEventListener<K extends keyof HTMLWbPaletteElementEventMap>(type: K, listener: (this: HTMLWbPaletteElement, ev: WbPaletteCustomEvent<HTMLWbPaletteElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
         addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
@@ -142,6 +159,7 @@ declare global {
     interface HTMLElementTagNameMap {
         "wb-canvas": HTMLWbCanvasElement;
         "wb-form-field": HTMLWbFormFieldElement;
+        "wb-inspector": HTMLWbInspectorElement;
         "wb-palette": HTMLWbPaletteElement;
     }
 }
@@ -159,7 +177,9 @@ declare namespace LocalJSX {
      */
     interface WbCanvas {
         "onWbChange"?: (event: WbCanvasCustomEvent<FieldMeta[]>) => void;
+        "onWbFieldDeselected"?: (event: WbCanvasCustomEvent<void>) => void;
         "onWbFieldSelected"?: (event: WbCanvasCustomEvent<FieldMeta>) => void;
+        "onWbFieldUpdated"?: (event: WbCanvasCustomEvent<{ id: number; patch: Partial<FieldMeta> }>) => void;
     }
     /**
      * Renders ONE field from the JSON Schema / UI Schema pair and participates
@@ -188,24 +208,25 @@ declare namespace LocalJSX {
           * @default false
          */
         "required"?: boolean;
+        "restrictions"?: Restrictions;
+        "subtype"?: FieldSubtype;
         /**
           * @default 'text'
          */
-        "type"?: FieldType1;
+        "type"?: FieldType;
     }
-    /**
-     * Tap-to-add palette. This is the interaction validated in the mobile
-     * FAB-and-sheet spike (tap a type, it's appended to the canvas) — it works
-     * identically here whether triggered by a real FAB/sheet shell on mobile or
-     * a plain click on desktop.
-     * Desktop drag-from-palette straight onto the canvas (the cross-shadow-
-     * boundary drag validated in the first spike) is intentionally not wired up
-     * yet — worth adding once the tap-to-add path is confirmed against real
-     * form-core schema output, since it's an enhancement layered on the same
-     * wbAddField event rather than a different data path.
-     */
+    interface WbInspector {
+        /**
+          * @default null
+         */
+        "field"?: FieldMeta | null;
+        "onWbFieldUpdated"?: (event: WbInspectorCustomEvent<{ id: number; patch: Partial<FieldMeta> }>) => void;
+    }
     interface WbPalette {
         "onWbAddField"?: (event: WbPaletteCustomEvent<FieldTypeDef>) => void;
+        "onWbPaletteDragEnd"?: (event: WbPaletteCustomEvent<FieldTypeDef | null>) => void;
+        "onWbPaletteDragMove"?: (event: WbPaletteCustomEvent<{ clientX: number; clientY: number }>) => void;
+        "onWbPaletteDragStart"?: (event: WbPaletteCustomEvent<FieldTypeDef>) => void;
     }
 
     interface WbFormFieldAttributes {
@@ -213,11 +234,13 @@ declare namespace LocalJSX {
         "type": FieldType;
         "label": string;
         "required": boolean;
+        "subtype": FieldSubtype;
     }
 
     interface IntrinsicElements {
         "wb-canvas": WbCanvas;
         "wb-form-field": Omit<WbFormField, keyof WbFormFieldAttributes> & { [K in keyof WbFormField & keyof WbFormFieldAttributes]?: WbFormField[K] } & { [K in keyof WbFormField & keyof WbFormFieldAttributes as `attr:${K}`]?: WbFormFieldAttributes[K] } & { [K in keyof WbFormField & keyof WbFormFieldAttributes as `prop:${K}`]?: WbFormField[K] } & OneOf<"name", WbFormField["name"], WbFormFieldAttributes["name"]> & OneOf<"label", WbFormField["label"], WbFormFieldAttributes["label"]>;
+        "wb-inspector": WbInspector;
         "wb-palette": WbPalette;
     }
 }
@@ -245,17 +268,7 @@ declare module "@stencil/core" {
              * see the collision risk noted after the ElementInternals spike.
              */
             "wb-form-field": LocalJSX.IntrinsicElements["wb-form-field"] & JSXBase.HTMLAttributes<HTMLWbFormFieldElement>;
-            /**
-             * Tap-to-add palette. This is the interaction validated in the mobile
-             * FAB-and-sheet spike (tap a type, it's appended to the canvas) — it works
-             * identically here whether triggered by a real FAB/sheet shell on mobile or
-             * a plain click on desktop.
-             * Desktop drag-from-palette straight onto the canvas (the cross-shadow-
-             * boundary drag validated in the first spike) is intentionally not wired up
-             * yet — worth adding once the tap-to-add path is confirmed against real
-             * form-core schema output, since it's an enhancement layered on the same
-             * wbAddField event rather than a different data path.
-             */
+            "wb-inspector": LocalJSX.IntrinsicElements["wb-inspector"] & JSXBase.HTMLAttributes<HTMLWbInspectorElement>;
             "wb-palette": LocalJSX.IntrinsicElements["wb-palette"] & JSXBase.HTMLAttributes<HTMLWbPaletteElement>;
         }
     }
