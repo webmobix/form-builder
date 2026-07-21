@@ -28,6 +28,19 @@ see the collision risk noted after the ElementInternals spike.
 | `type`               | `type`     |                                                                          | `"checkbox" \| "date" \| "select" \| "text"` | `'text'`    |
 
 
+## Dependencies
+
+### Used by
+
+ - [wb-form-renderer](../wb-form-renderer)
+
+### Graph
+```mermaid
+graph TD;
+  wb-form-renderer --> wb-form-field
+  style wb-form-field fill:#f9f,stroke:#333,stroke-width:4px
+```
+
 ----------------------------------------------
 
 *Built with [StencilJS](https://stenciljs.com/)*

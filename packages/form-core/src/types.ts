@@ -69,5 +69,6 @@ export interface FieldMeta {
   type: FieldType;
   label: string;
   subtype?: FieldSubtype;
+  required?: boolean;
   restrictions?: Restrictions;
 }

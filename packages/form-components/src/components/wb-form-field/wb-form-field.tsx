@@ -39,6 +39,7 @@ export class WbFormField {
 
   @Watch('value')
   @Watch('checked')
+  @Watch('required')
   onValueChange() {
     this.sync();
   }
@@ -118,7 +119,7 @@ export class WbFormField {
             checked={this.checked}
             onChange={this.onInput}
           />
-          <span>{this.label}</span>
+          <span>{this.label}{this.required && <span class="required-mark"> *</span>}</span>
         </label>
       );
     }
@@ -129,7 +130,7 @@ export class WbFormField {
 
     return (
       <label class="wb-field">
-        <span class="wb-field__label">{this.label}</span>
+        <span class="wb-field__label">{this.label}{this.required && <span class="required-mark"> *</span>}</span>
         <input
           type={inputType}
           ref={(el) => (this.inputEl = el)}

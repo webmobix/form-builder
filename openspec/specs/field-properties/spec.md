@@ -1,4 +1,4 @@
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Inspector panel reflects the selected canvas field
 The system SHALL provide a right-hand inspector panel (`wb-inspector`) that renders the editable properties of the field currently selected on the canvas. When no canvas field is selected, the inspector SHALL render an empty/placeholder state and SHALL NOT edit any field.
@@ -134,3 +134,14 @@ The canvas SHALL provide a way to clear the current selection (e.g. clicking the
 #### Scenario: Clearing selection preserves fields
 - **WHEN** selection is cleared
 - **THEN** the canvas's field list and each field's properties remain unchanged
+
+### Requirement: Inspector provides a required toggle
+The inspector SHALL render a "Required" checkbox toggle for all field types. Toggling it SHALL emit a `wbFieldUpdated` event with `{ required: true }` or `{ required: false }` in the patch.
+
+#### Scenario: Required checkbox appears for all field types
+- **WHEN** any field type is selected in the inspector
+- **THEN** the inspector renders a "Required" checkbox showing the field's current `required` state (unchecked when unset)
+
+#### Scenario: Toggling required emits an update
+- **WHEN** the user checks or unchecks the "Required" checkbox
+- **THEN** the inspector emits `wbFieldUpdated` with the field `id` and a patch containing `{ required: true }` or `{ required: false }`

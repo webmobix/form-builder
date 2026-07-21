@@ -82,6 +82,18 @@
   box-shadow: 0 0 0 1px #2f6fed;
 }
 
+.field-group--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 .restrictions {
   display: flex;
   flex-direction: column;

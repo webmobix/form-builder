@@ -13,24 +13,29 @@
       wb-canvas { flex: 1; }
       wb-inspector { flex: 0 0 260px; }
       pre { background: #1c1c1a; color: #d9d9d3; padding: 12px; border-radius: 8px; font-size: 12px; }
+      .section { margin-top: 24px; }
+      .section-title { font-weight: 600; margin-bottom: 8px; }
     </style>
   </head>
   <body>
     <h1>form-components dev harness</h1>
     <p>Manual smoke test: click a palette item to add a field, drag the grip handle to reorder, select a row to edit in the inspector, submit the form.</p>
 
-    <form id="demo-form">
-      <div class="layout">
-        <wb-palette></wb-palette>
-        <wb-canvas id="canvas"></wb-canvas>
-        <wb-inspector id="inspector"></wb-inspector>
-      </div>
-      <p>
-        <wb-form-field name="standalone.note" label="A standalone form-associated field" required></wb-form-field>
-      </p>
-      <button type="submit">Submit</button>
-      <button type="reset">Reset</button>
-    </form>
+    <div class="layout">
+      <wb-palette></wb-palette>
+      <wb-canvas id="canvas"></wb-canvas>
+      <wb-inspector id="inspector"></wb-inspector>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Builder payload</div>
+      <button id="dump-builder">Dump builder payload</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Rendered form</div>
+      <wb-form-renderer id="renderer"></wb-form-renderer>
+    </div>
 
     <div>Last wbChange payload:</div>
     <pre id="out">—</pre>
@@ -42,11 +47,13 @@
       const palette = document.querySelector('wb-palette');
       const canvas = document.getElementById('canvas');
       const inspector = document.getElementById('inspector');
+      const renderer = document.getElementById('renderer');
       const out = document.getElementById('out');
       const selected = document.getElementById('selected');
-      const form = document.getElementById('demo-form');
+      const dumpBtn = document.getElementById('dump-builder');
 
       let selectedId = null;
+      let lastBuilderPayload = null;
 
       palette.addEventListener('wbAddField', (e) => {
         canvas.addField(e.detail.type, e.detail.label);
@@ -65,7 +72,9 @@
         }
       });
       canvas.addEventListener('wbChange', (e) => {
+        lastBuilderPayload = e.detail;
         out.textContent = JSON.stringify(e.detail, null, 2);
+        renderer.setFields(e.detail);
       });
       canvas.addEventListener('wbFieldSelected', (e) => {
         selectedId = e.detail.id;
@@ -83,10 +92,11 @@
       inspector.addEventListener('wbFieldUpdated', (e) => {
         canvas.updateField(e.detail.id, e.detail.patch);
       });
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const fd = new FormData(form);
-        out.textContent = JSON.stringify(Object.fromEntries(fd.entries()), null, 2);
+      renderer.addEventListener('wbSubmit', (e) => {
+        out.textContent = JSON.stringify(e.detail, null, 2);
+      });
+      dumpBtn.addEventListener('click', () => {
+        out.textContent = JSON.stringify(lastBuilderPayload, null, 2);
       });
     </script>
   </body>

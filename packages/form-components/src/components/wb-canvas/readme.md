@@ -120,10 +120,10 @@ Type: `Promise<void>`
 
 #### Parameters
 
-| Name    | Type                                                                                                     | Description |
-| ------- | -------------------------------------------------------------------------------------------------------- | ----------- |
-| `id`    | `number`                                                                                                 |             |
-| `patch` | `{ id?: number; type?: FieldType; label?: string; subtype?: TextSubtype; restrictions?: Restrictions; }` |             |
+| Name    | Type                                                                                                                         | Description |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `id`    | `number`                                                                                                                     |             |
+| `patch` | `{ id?: number; type?: FieldType; label?: string; subtype?: TextSubtype; required?: boolean; restrictions?: Restrictions; }` |             |
 
 #### Returns
 

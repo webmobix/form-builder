@@ -38,6 +38,10 @@ export class WbCanvas {
   private scrollDir = 0;
   private raf: number | null = null;
 
+  componentDidLoad() {
+    this.wbChange.emit(this.fields);
+  }
+
   @Method()
   async addField(type: FieldMeta['type'], label: string) {
     this.fields = [...this.fields, { id: ++uid, type, label }];

@@ -36,6 +36,12 @@ export class WbInspector {
     this.emitPatch({ label: value });
   };
 
+  private onRequiredChange = (e: Event) => {
+    const required = (e.target as HTMLInputElement).checked;
+    this.localField = { ...this.localField!, required };
+    this.emitPatch({ required });
+  };
+
   private onTypeChange = (e: Event) => {
     const type = (e.target as HTMLSelectElement).value as FieldType;
     const patch: Partial<FieldMeta> = { type };
@@ -101,6 +107,16 @@ export class WbInspector {
             onInput={this.onLabelInput}
           />
           {this.labelError && <span class="error-text">{this.labelError}</span>}
+        </label>
+
+        <label class="field-group field-group--checkbox">
+          <span class="field-label">Required</span>
+          <input
+            type="checkbox"
+            class="checkbox"
+            checked={!!f.required}
+            onChange={this.onRequiredChange}
+          />
         </label>
 
         <label class="field-group">

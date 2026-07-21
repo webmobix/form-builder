@@ -14,6 +14,10 @@
   margin-bottom: 4px;
 }
 
+.required-mark {
+  color: #e53e3e;
+}
+
 .wb-field input[type='text'],
 .wb-field input[type='date'] {
   width: 100%;

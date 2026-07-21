@@ -52,6 +52,13 @@ export namespace Components {
          */
         "type": FieldType;
     }
+    interface WbFormRenderer {
+        /**
+          * @default []
+         */
+        "fields": FieldMeta[];
+        "setFields": (fields: FieldMeta[]) => Promise<void>;
+    }
     interface WbInspector {
         /**
           * @default null
@@ -65,6 +72,10 @@ export namespace Components {
 export interface WbCanvasCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLWbCanvasElement;
+}
+export interface WbFormRendererCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLWbFormRendererElement;
 }
 export interface WbInspectorCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -119,6 +130,23 @@ declare global {
         prototype: HTMLWbFormFieldElement;
         new (): HTMLWbFormFieldElement;
     };
+    interface HTMLWbFormRendererElementEventMap {
+        "wbSubmit": Record<string, string>;
+    }
+    interface HTMLWbFormRendererElement extends Components.WbFormRenderer, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLWbFormRendererElementEventMap>(type: K, listener: (this: HTMLWbFormRendererElement, ev: WbFormRendererCustomEvent<HTMLWbFormRendererElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLWbFormRendererElementEventMap>(type: K, listener: (this: HTMLWbFormRendererElement, ev: WbFormRendererCustomEvent<HTMLWbFormRendererElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLWbFormRendererElement: {
+        prototype: HTMLWbFormRendererElement;
+        new (): HTMLWbFormRendererElement;
+    };
     interface HTMLWbInspectorElementEventMap {
         "wbFieldUpdated": { id: number; patch: Partial<FieldMeta> };
     }
@@ -159,6 +187,7 @@ declare global {
     interface HTMLElementTagNameMap {
         "wb-canvas": HTMLWbCanvasElement;
         "wb-form-field": HTMLWbFormFieldElement;
+        "wb-form-renderer": HTMLWbFormRendererElement;
         "wb-inspector": HTMLWbInspectorElement;
         "wb-palette": HTMLWbPaletteElement;
     }
@@ -215,6 +244,13 @@ declare namespace LocalJSX {
          */
         "type"?: FieldType;
     }
+    interface WbFormRenderer {
+        /**
+          * @default []
+         */
+        "fields"?: FieldMeta[];
+        "onWbSubmit"?: (event: WbFormRendererCustomEvent<Record<string, string>>) => void;
+    }
     interface WbInspector {
         /**
           * @default null
@@ -240,6 +276,7 @@ declare namespace LocalJSX {
     interface IntrinsicElements {
         "wb-canvas": WbCanvas;
         "wb-form-field": Omit<WbFormField, keyof WbFormFieldAttributes> & { [K in keyof WbFormField & keyof WbFormFieldAttributes]?: WbFormField[K] } & { [K in keyof WbFormField & keyof WbFormFieldAttributes as `attr:${K}`]?: WbFormFieldAttributes[K] } & { [K in keyof WbFormField & keyof WbFormFieldAttributes as `prop:${K}`]?: WbFormField[K] } & OneOf<"name", WbFormField["name"], WbFormFieldAttributes["name"]> & OneOf<"label", WbFormField["label"], WbFormFieldAttributes["label"]>;
+        "wb-form-renderer": WbFormRenderer;
         "wb-inspector": WbInspector;
         "wb-palette": WbPalette;
     }
@@ -268,6 +305,7 @@ declare module "@stencil/core" {
              * see the collision risk noted after the ElementInternals spike.
              */
             "wb-form-field": LocalJSX.IntrinsicElements["wb-form-field"] & JSXBase.HTMLAttributes<HTMLWbFormFieldElement>;
+            "wb-form-renderer": LocalJSX.IntrinsicElements["wb-form-renderer"] & JSXBase.HTMLAttributes<HTMLWbFormRendererElement>;
             "wb-inspector": LocalJSX.IntrinsicElements["wb-inspector"] & JSXBase.HTMLAttributes<HTMLWbInspectorElement>;
             "wb-palette": LocalJSX.IntrinsicElements["wb-palette"] & JSXBase.HTMLAttributes<HTMLWbPaletteElement>;
         }
