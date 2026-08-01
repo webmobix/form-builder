@@ -5,8 +5,8 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { FieldMeta, FieldSubtype, FieldType, Restrictions } from "../../form-core/src/types";
-export { FieldMeta, FieldSubtype, FieldType, Restrictions } from "../../form-core/src/types";
+import { FieldMeta, FieldSubtype, FieldType, Restrictions } from "@webmobix/form-core";
+export { FieldMeta, FieldSubtype, FieldType, Restrictions } from "@webmobix/form-core";
 export namespace Components {
     /**
      * Reorderable field list. Ported from the standalone touch-drag spike.

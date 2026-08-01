@@ -1,5 +1,5 @@
 import { Component, Prop, State, Method, Event, EventEmitter, Element, h } from '@stencil/core';
-import type { FieldMeta } from '../../../../form-core/src/types';
+import type { FieldMeta } from '@webmobix/form-core';
 
 @Component({
   tag: 'wb-form-renderer',

@@ -1,7 +1,9 @@
 import { h } from '@stencil/core';
-import { newSpecPage } from '@stencil/core/testing';
-import { WbPalette } from './wb-palette';
-import { WbCanvas } from '../wb-canvas/wb-canvas';
+import { render } from '@stencil/vitest';
+
+// Importing the source files triggers the on-the-fly compile + customElements.define()
+import './wb-palette';
+import '../wb-canvas/wb-canvas';
 
 function createPointerEvent(type: string, init: Partial<PointerEventInit> = {}): Event {
   const event = new Event(type, { bubbles: true, ...init });
@@ -16,15 +18,12 @@ function createPointerEvent(type: string, init: Partial<PointerEventInit> = {}):
 
 describe('wb-palette drag events', () => {
   it('pointerdown with mouse starts drag, emits wbPaletteDragStart', async () => {
-    const page = await newSpecPage({
-      components: [WbPalette],
-      template: () => <wb-palette></wb-palette>,
-    });
-    const dragStart = jest.fn();
-    page.root.addEventListener('wbPaletteDragStart', dragStart);
+    const { root } = await render(<wb-palette></wb-palette>);
+    const dragStart = vi.fn();
+    root.addEventListener('wbPaletteDragStart', dragStart);
 
-    const btn = page.root.shadowRoot.querySelector('button')!;
-    btn.setPointerCapture = jest.fn();
+    const btn = root.shadowRoot!.querySelector('button')!;
+    btn.setPointerCapture = vi.fn();
     btn.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 100, clientY: 200 }));
 
     expect(dragStart).toHaveBeenCalled();
@@ -32,28 +31,22 @@ describe('wb-palette drag events', () => {
   });
 
   it('pointerdown with touch does NOT start drag', async () => {
-    const page = await newSpecPage({
-      components: [WbPalette],
-      template: () => <wb-palette></wb-palette>,
-    });
-    const dragStart = jest.fn();
-    page.root.addEventListener('wbPaletteDragStart', dragStart);
+    const { root } = await render(<wb-palette></wb-palette>);
+    const dragStart = vi.fn();
+    root.addEventListener('wbPaletteDragStart', dragStart);
 
-    const btn = page.root.shadowRoot.querySelector('button')!;
+    const btn = root.shadowRoot!.querySelector('button')!;
     btn.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'touch', pointerId: 2, clientX: 100, clientY: 200 }));
 
     expect(dragStart).not.toHaveBeenCalled();
   });
 
   it('click (no drag) on palette item emits wbAddField', async () => {
-    const page = await newSpecPage({
-      components: [WbPalette],
-      template: () => <wb-palette></wb-palette>,
-    });
-    const addField = jest.fn();
-    page.root.addEventListener('wbAddField', addField);
+    const { root } = await render(<wb-palette></wb-palette>);
+    const addField = vi.fn();
+    root.addEventListener('wbAddField', addField);
 
-    const btn = page.root.shadowRoot.querySelector('button')!;
+    const btn = root.shadowRoot!.querySelector('button')!;
     btn.click();
 
     expect(addField).toHaveBeenCalled();
@@ -61,49 +54,40 @@ describe('wb-palette drag events', () => {
   });
 
   it('canvas commitExternalInsert uses same uid source as addField', async () => {
-    const page = await newSpecPage({
-      components: [WbCanvas],
-      template: () => <wb-canvas></wb-canvas>,
-    });
-    const canvas = page.rootInstance as WbCanvas;
-    const initialLen = (canvas as any).fields.length;
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    const initialLen = canvas.fields.length;
 
     await canvas.addField('text', 'Click added');
-    expect((canvas as any).fields).toHaveLength(initialLen + 1);
+    expect(canvas.fields).toHaveLength(initialLen + 1);
 
-    (canvas as any).externalDrag = true;
-    (canvas as any).hoverIndex = 0;
+    canvas.externalDrag = true;
+    canvas.hoverIndex = 0;
     await canvas.commitExternalInsert('select', 'Drag added');
-    expect((canvas as any).fields).toHaveLength(initialLen + 2);
-    expect((canvas as any).fields[0].type).toBe('select');
-    expect((canvas as any).fields[0].id).toBeDefined();
+    expect(canvas.fields).toHaveLength(initialLen + 2);
+    expect(canvas.fields[0].type).toBe('select');
+    expect(canvas.fields[0].id).toBeDefined();
   });
 
   it('cancelExternalDrag clears externalDrag and hoverIndex', async () => {
-    const page = await newSpecPage({
-      components: [WbCanvas],
-      template: () => <wb-canvas></wb-canvas>,
-    });
-    const canvas = page.rootInstance as WbCanvas;
-    (canvas as any).externalDrag = true;
-    (canvas as any).hoverIndex = 1;
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    canvas.externalDrag = true;
+    canvas.hoverIndex = 1;
     await canvas.cancelExternalDrag();
-    expect((canvas as any).externalDrag).toBe(false);
-    expect((canvas as any).hoverIndex).toBeNull();
+    expect(canvas.externalDrag).toBe(false);
+    expect(canvas.hoverIndex).toBeNull();
   });
 
   it('existing canvas reorder still works (addField unchanged)', async () => {
-    const page = await newSpecPage({
-      components: [WbCanvas],
-      template: () => <wb-canvas></wb-canvas>,
-    });
-    const canvas = page.rootInstance as WbCanvas;
-    const spy = jest.fn();
-    page.root.addEventListener('wbChange', spy);
+    const { root, instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbChange', spy);
 
     await canvas.addField('date', 'Date');
     expect(spy).toHaveBeenCalled();
-    expect((canvas as any).fields).toHaveLength(3);
-    expect((canvas as any).fields[2].type).toBe('date');
+    expect(canvas.fields).toHaveLength(3);
+    expect(canvas.fields[2].type).toBe('date');
   });
 });

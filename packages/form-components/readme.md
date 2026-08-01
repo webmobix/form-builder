@@ -109,3 +109,29 @@ export default App;
 ```
 
 Check out this [Live Demo](https://stackblitz.com/edit/vitejs-vite-b6zuds?file=src%2FApp.tsx).
+
+### React
+
+Typed React wrapper components are generated via [`@stencil/react-output-target`](https://www.npmjs.com/package/@stencil/react-output-target) and shipped under the `@webmobix/form-components/react` subpath export. `react` and `react-dom` (>=18) are peer dependencies — provide them in your app.
+
+```tsx
+import { WbFormRenderer, WbFormField } from '@webmobix/form-components/react';
+
+function App() {
+  return (
+    <WbFormRenderer
+      onWbSubmit={(e) => console.log('submitted', e.detail)}
+    >
+      <WbFormField name="email" label="Email" />
+    </WbFormRenderer>
+  );
+}
+
+export default App;
+```
+
+Each Stencil component `wb-foo` is exposed as a PascalCase wrapper (e.g., `WbCanvas`, `WbFormField`, `WbFormRenderer`, `WbInspector`, `WbPalette`). Component props mirror the Stencil public props, and emitted events are exposed as `on<Event>` handlers (e.g., `onWbChange`, `onWbSubmit`).
+
+#### Preact
+
+Preact consumers can reuse the React wrappers by aliasing `react` and `react-dom` to `preact/compat` in their bundler config. This is best-effort and not officially guaranteed — edge cases may arise with `preact/compat`.

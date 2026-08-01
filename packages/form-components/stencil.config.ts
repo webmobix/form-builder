@@ -1,4 +1,5 @@
 import { Config } from '@stencil/core';
+import { reactOutputTarget } from '@stencil/react-output-target';
 
 // Tag prefix for every component in this collection is "wb-" (see each
 // @Component({ tag: 'wb-...' }) below). Keep it globally unique to avoid
@@ -26,12 +27,11 @@ export const config: Config = {
       type: 'www',
       serviceWorker: null,
     },
-    // Next step, once form-core's field types stabilize: add the React
-    // output target here (`@stencil/react-output-target`), which generates
-    // typed React wrapper components with correct prop/event bindings.
-    // Preact consumers can then alias react/react-dom -> preact/compat in
-    // their bundler and use the same generated wrappers, rather than us
-    // hand-rolling a separate Preact output target.
+    reactOutputTarget({
+      outDir: 'react/',
+      excludeComponents: [],
+      includeImportSymbols: true,
+    }),
   ],
   testing: {
     browserHeadless: 'new',

@@ -1,5 +1,5 @@
 import { Component, State, Method, Event, EventEmitter, Fragment, h } from '@stencil/core';
-import type { FieldMeta } from '../../../../form-core/src/types';
+import type { FieldMeta } from '@webmobix/form-core';
 
 let uid = 0;
 

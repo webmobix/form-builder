@@ -1,5 +1,5 @@
 import { Component, Prop, State, AttachInternals, Watch, h } from '@stencil/core';
-import type { FieldType, FieldSubtype, Restrictions } from '../../../../form-core/src/types';
+import type { FieldType, FieldSubtype, Restrictions } from '@webmobix/form-core';
 
 /**
  * Renders ONE field from the JSON Schema / UI Schema pair and participates

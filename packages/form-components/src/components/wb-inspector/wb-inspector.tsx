@@ -1,5 +1,5 @@
 import { Component, Prop, Method, Event, EventEmitter, State, h } from '@stencil/core';
-import type { FieldMeta, FieldType, FieldSubtype } from '../../../../form-core/src/types';
+import type { FieldMeta, FieldType, FieldSubtype } from '@webmobix/form-core';
 
 @Component({
   tag: 'wb-inspector',

@@ -1,5 +1,5 @@
 import { Component, Event, EventEmitter, h, State } from '@stencil/core';
-import type { FieldType } from '../../../../form-core/src/types';
+import type { FieldType } from '@webmobix/form-core';
 
 interface FieldTypeDef {
   type: FieldType;

@@ -1,7 +1,7 @@
 {
   "name": "@webmobix/form-components",
   "version": "0.0.1",
-  "description": "Form field, canvas, and palette web components (Stencil) — plain HTML / React / Preact via dist-custom-elements",
+  "description": "Form field, canvas, and palette web components (Stencil) — plain HTML / React / Preact via dist-custom-elements, with typed React wrappers",
   "main": "dist/index.cjs.js",
   "module": "dist/index.js",
   "types": "dist/types/index.d.ts",
@@ -17,6 +17,10 @@
       "import": "./loader/index.js",
       "require": "./loader/index.cjs",
       "types": "./loader/index.d.ts"
+    },
+    "./react": {
+      "types": "./react/components.ts",
+      "import": "./react/components.ts"
     }
   },
   "repository": {
@@ -26,26 +30,37 @@
   },
   "files": [
     "dist/",
-    "loader/"
+    "loader/",
+    "react/"
   ],
   "scripts": {
     "build": "stencil build",
     "start": "stencil build --dev --watch --serve",
-    "test": "stencil-test --prod",
-    "test:watch": "stencil-test --prod --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "generate": "stencil generate"
+  },
+  "dependencies": {
+    "@webmobix/form-core": "workspace:*"
   },
   "devDependencies": {
     "@stencil/core": "^4.27.1 || ^5.0.0-0",
+    "@stencil/react-output-target": "^1.6.1",
     "@stencil/vitest": "^1.8.3",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.5",
+    "@types/react": "^18.3.0",
+    "typescript": "^5.9.0",
     "@vitest/browser-playwright": "^4.0.0",
     "jest": "^29.7.0",
     "jest-cli": "^29.7.0",
     "jsdom": "^29.1.1",
     "playwright": "^1.52.0",
     "vitest": "^4.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
   },
   "license": "MIT",
   "publishConfig": {
