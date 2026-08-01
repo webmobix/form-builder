@@ -30,6 +30,16 @@
     <div class="section">
       <div class="section-title">Builder payload</div>
       <button id="dump-builder">Dump builder payload</button>
+      <button id="export-json">Export JSON</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Load into canvas</div>
+      <textarea id="import-input" rows="6" style="width:100%;font-family:monospace;font-size:12px;" placeholder='Paste JSON like [{"id":1,"type":"text","label":"Name"}]'></textarea>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+        <input type="file" id="import-file" accept="application/json" />
+        <button id="load-into-canvas">Load into canvas</button>
+      </div>
     </div>
 
     <div class="section">
@@ -51,6 +61,10 @@
       const out = document.getElementById('out');
       const selected = document.getElementById('selected');
       const dumpBtn = document.getElementById('dump-builder');
+      const exportBtn = document.getElementById('export-json');
+      const importInput = document.getElementById('import-input');
+      const importFile = document.getElementById('import-file');
+      const loadBtn = document.getElementById('load-into-canvas');
 
       let selectedId = null;
       let lastBuilderPayload = null;
@@ -97,6 +111,30 @@
       });
       dumpBtn.addEventListener('click', () => {
         out.textContent = JSON.stringify(lastBuilderPayload, null, 2);
+      });
+      exportBtn.addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(lastBuilderPayload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'form-builder-state.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+      loadBtn.addEventListener('click', async () => {
+        let raw;
+        try {
+          const file = importFile.files && importFile.files[0];
+          if (file) {
+            raw = await file.text();
+          } else {
+            raw = importInput.value;
+          }
+          const parsed = JSON.parse(raw);
+          await canvas.importState(parsed);
+        } catch (err) {
+          out.textContent = 'Error loading into canvas: ' + (err && err.message ? err.message : String(err));
+        }
       });
     </script>
   </body>

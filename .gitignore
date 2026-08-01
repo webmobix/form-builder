@@ -5,3 +5,4 @@ loader/
 .stencil/
 *.log
 .DS_Store
+/.playwright-mcp

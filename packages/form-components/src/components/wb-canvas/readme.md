@@ -82,6 +82,22 @@ Type: `Promise<void>`
 
 
 
+### `importState(fields: FieldMeta[]) => Promise<void>`
+
+
+
+#### Parameters
+
+| Name     | Type          | Description |
+| -------- | ------------- | ----------- |
+| `fields` | `FieldMeta[]` |             |
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
 ### `selectField(id: number | null) => Promise<void>`
 
 

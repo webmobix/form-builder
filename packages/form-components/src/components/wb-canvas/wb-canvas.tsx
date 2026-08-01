@@ -49,6 +49,25 @@ export class WbCanvas {
   }
 
   @Method()
+  async importState(fields: FieldMeta[]): Promise<void> {
+    if (!Array.isArray(fields)) return;
+    for (const f of fields) {
+      if (typeof f.id !== 'number' || typeof f.type !== 'string' || typeof f.label !== 'string') {
+        return;
+      }
+    }
+    if (this.selectedId !== null) {
+      this.selectedId = null;
+      this.wbFieldDeselected.emit();
+    }
+    this.fields = fields;
+    if (fields.length > 0) {
+      uid = Math.max(...fields.map((f) => f.id), uid);
+    }
+    this.wbChange.emit(this.fields);
+  }
+
+  @Method()
   async selectField(id: number | null) {
     this.selectedId = id;
   }

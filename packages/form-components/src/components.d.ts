@@ -22,6 +22,7 @@ export namespace Components {
         "beginExternalDrag": () => Promise<void>;
         "cancelExternalDrag": () => Promise<void>;
         "commitExternalInsert": (type: FieldMeta["type"], label: string) => Promise<void>;
+        "importState": (fields: FieldMeta[]) => Promise<void>;
         "selectField": (id: number | null) => Promise<void>;
         "setExternalHoverIndex": (y: number) => Promise<void>;
         "updateField": (id: number, patch: Partial<FieldMeta>) => Promise<void>;
