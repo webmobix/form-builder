@@ -23,8 +23,17 @@ npm workspaces monorepo, scaffolded and verified building/testing end to end.
 
   Builds clean via `npm run build -w packages/form-components` (`stencil build`). Output
   targets configured: `dist` (lazy, for plain-HTML script-tag use) and `dist-custom-elements`
-  (tree-shakeable, for bundler-based consumers — this is what a future React/Preact wrapper
-  package would import from).
+  (tree-shakeable, for bundler-based consumers — this is what the React wrapper package
+  imports from).
+
+- **`packages/form-components-react`** — React wrappers for `@webmobix/form-components`.
+  A standalone, publishable React library package that compiles and re-exports the
+  Stencil-generated wrappers as typed PascalCase React components
+  (`WbCanvas`, `WbFormField`, `WbFormRenderer`, `WbInspector`, `WbPalette`) with idiomatic
+  `on<Event>` handler props. `react`/`react-dom` are peer deps (`>=18`); Preact can consume
+  the same wrappers via `react`/`react-dom` → `preact/compat` aliasing. The generated
+  `src/components/components.ts` is produced by the Stencil build and gitignored.
+  Builds clean via `npm run build -w packages/form-components-react` (ESM + `.d.ts`).
 
 ## Running locally
 
@@ -33,7 +42,17 @@ npm install
 npm test -w packages/form-core          # 6 passing tests
 npm run build -w packages/form-core
 npm run build -w packages/form-components
+npm run build -w packages/form-components-react
 npm start -w packages/form-components   # dev server, opens src/index.html
+```
+
+Consuming the React wrappers from a React app:
+
+```tsx
+import { WbCanvas, WbFormRenderer } from '@webmobix/form-components-react';
+
+<WbCanvas onWbChange={(e) => console.log(e.detail)} />
+<WbFormRenderer onWbSubmit={(e) => console.log(e.detail)} />
 ```
 
 `src/index.html` in `form-components` wires palette + canvas + a standalone field together
@@ -41,16 +60,16 @@ in one page — closest thing to a working end-to-end smoke test right now.
 
 ## Deliberately not done yet
 
-- **React output target** (`@stencil/react-output-target`) — noted as a comment in
-  `stencil.config.ts`. Add once the field-type set stabilizes; Preact can likely consume the
-  same generated wrappers via `react`/`react-dom` → `preact/compat` aliasing rather than a
-  separate output target.
+- **React output target consumers in-app** — `@stencil/react-output-target` is wired and the
+  `@webmobix/form-components-react` package ships typed wrappers (see above), but no in-repo
+  React demo app consumes them yet. Preact can consume the same wrappers via
+  `react`/`react-dom` → `preact/compat` aliasing rather than a separate output target.
 - **Desktop drag-from-palette onto the canvas** — proven working in the original spike
   (cross-shadow-boundary `elementFromPoint` drilling), not yet ported into `wb-palette`.
 - **`form-builder-core`** (palette registry, selection state, schema serialization from
   canvas state) and the three-pane desktop / FAB-and-sheet mobile shells — not started.
-- **GitHub Packages publishing** — `publishConfig` is set on both package.json files and
-  root `.npmrc` routes the `@webmobix` scope there, but nothing has been published yet; needs
+- **GitHub Packages publishing** — `publishConfig` is set on all three package.json files
+  and root `.npmrc` routes the `@webmobix` scope there, but nothing has been published yet; needs
   a `GITHUB_PACKAGES_TOKEN` and a CI workflow (Changesets recommended for version bumps
   across the multi-package split).
 - **Unique field keys from schema path** — `wb-form-field`'s `name` prop is currently just

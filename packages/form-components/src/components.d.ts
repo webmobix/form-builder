@@ -6,7 +6,9 @@
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { FieldMeta, FieldSubtype, FieldType, Restrictions } from "@webmobix/form-core";
+import { FieldTypeDef } from "./components/wb-palette/wb-palette";
 export { FieldMeta, FieldSubtype, FieldType, Restrictions } from "@webmobix/form-core";
+export { FieldTypeDef } from "./components/wb-palette/wb-palette";
 export namespace Components {
     /**
      * Reorderable field list. Ported from the standalone touch-drag spike.

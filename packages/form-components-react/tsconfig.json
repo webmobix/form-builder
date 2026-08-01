@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "./dist",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react",
+    "jsxFactory": "h",
+    "jsxFragmentFactory": "h.Fragment",
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ],
+    "target": "es2022",
+    "skipLibCheck": true,
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "declarationDir": "./dist/types"
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

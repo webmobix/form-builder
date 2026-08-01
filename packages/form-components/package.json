@@ -1,7 +1,7 @@
 {
   "name": "@webmobix/form-components",
   "version": "0.0.1",
-  "description": "Form field, canvas, and palette web components (Stencil) — plain HTML / React / Preact via dist-custom-elements, with typed React wrappers",
+  "description": "Form field, canvas, and palette web components (Stencil) — plain HTML / Preact via dist-custom-elements; typed React wrappers ship in @webmobix/form-components-react",
   "main": "dist/index.cjs.js",
   "module": "dist/index.js",
   "types": "dist/types/index.d.ts",
@@ -10,17 +10,31 @@
   "unpkg": "dist/wb-form/wb-form.esm.js",
   "exports": {
     ".": {
-      "import": "./dist/wb-form/wb-form.esm.js",
-      "require": "./dist/wb-form/wb-form.cjs.js"
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/wb-form/wb-form.esm.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/wb-form/wb-form.cjs.js"
+      }
     },
     "./loader": {
       "import": "./loader/index.js",
       "require": "./loader/index.cjs",
       "types": "./loader/index.d.ts"
     },
-    "./react": {
-      "types": "./react/components.ts",
-      "import": "./react/components.ts"
+    "./dist/*": {
+      "import": "./dist/*",
+      "types": "./dist/*"
+    },
+    "./dist/components": {
+      "import": "./dist/components/index.js",
+      "types": "./dist/components/index.d.ts"
+    },
+    "./components/*": {
+      "import": "./dist/components/*.js",
+      "types": "./dist/components/*.d.ts"
     }
   },
   "repository": {
@@ -30,8 +44,7 @@
   },
   "files": [
     "dist/",
-    "loader/",
-    "react/"
+    "loader/"
   ],
   "scripts": {
     "build": "stencil build",

@@ -28,7 +28,7 @@ export const config: Config = {
       serviceWorker: null,
     },
     reactOutputTarget({
-      outDir: 'react/',
+      outDir: '../form-components-react/src/components/',
       excludeComponents: [],
       includeImportSymbols: true,
     }),
