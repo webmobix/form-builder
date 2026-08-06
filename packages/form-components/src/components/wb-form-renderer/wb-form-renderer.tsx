@@ -44,6 +44,9 @@ export class WbFormRenderer {
               subtype={entry.subtype}
               required={!!entry.required}
               restrictions={entry.restrictions}
+              multiline={!!entry.multiline}
+              initialLines={entry.initialLines}
+              maxHeight={entry.maxHeight}
             />
           ))}
         </div>

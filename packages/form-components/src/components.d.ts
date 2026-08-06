@@ -39,7 +39,13 @@ export namespace Components {
      * see the collision risk noted after the ElementInternals spike.
      */
     interface WbFormField {
+        "initialLines"?: number;
         "label": string;
+        "maxHeight"?: number;
+        /**
+          * @default false
+         */
+        "multiline": boolean;
         /**
           * JSON Pointer path used as the form-submission key, e.g. "personal.email"
          */
@@ -231,7 +237,13 @@ declare namespace LocalJSX {
           * The `id` of a `<form>` element to associate this element with.
          */
         "form"?: string;
+        "initialLines"?: number;
         "label": string;
+        "maxHeight"?: number;
+        /**
+          * @default false
+         */
+        "multiline"?: boolean;
         /**
           * JSON Pointer path used as the form-submission key, e.g. "personal.email"
          */
@@ -274,6 +286,9 @@ declare namespace LocalJSX {
         "label": string;
         "required": boolean;
         "subtype": FieldSubtype;
+        "multiline": boolean;
+        "initialLines": number;
+        "maxHeight": number;
     }
 
     interface IntrinsicElements {

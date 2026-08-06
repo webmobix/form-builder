@@ -178,3 +178,70 @@ describe('wb-inspector', () => {
     expect(call.patch.restrictions.number.min).toBeUndefined();
   });
 });
+
+describe('wb-inspector multiline controls', () => {
+  const multilineCheckbox = (root: HTMLElement) => {
+    const labels = Array.from(root.shadowRoot!.querySelectorAll('.field-group--checkbox'));
+    return labels.map((l) => l.textContent).find((t) => t && t.includes('Multiline'));
+  };
+
+  it('shows the Multiline toggle for plain-text fields', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({ id: 1, type: 'text', label: 'Notes' });
+    await waitForChanges();
+    expect(multilineCheckbox(root)).toBeTruthy();
+  });
+
+  it('hides the Multiline toggle for non-text fields', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({ id: 1, type: 'checkbox', label: 'Agree' });
+    await waitForChanges();
+    expect(multilineCheckbox(root)).toBeFalsy();
+  });
+
+  it('hides the Multiline toggle for non-plain-text subtypes', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({ id: 1, type: 'text', label: 'Age', subtype: 'number' });
+    await waitForChanges();
+    expect(multilineCheckbox(root)).toBeFalsy();
+  });
+
+  it('shows initialLines and maxHeight inputs only when multiline is true', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({ id: 1, type: 'text', label: 'Notes', subtype: 'text', multiline: false });
+    await waitForChanges();
+    expect(root.shadowRoot!.textContent).not.toContain('Initial Lines');
+
+    await inspector.setField({ id: 1, type: 'text', label: 'Notes', subtype: 'text', multiline: true, initialLines: 5, maxHeight: 200 });
+    await waitForChanges();
+    expect(root.shadowRoot!.textContent).toContain('Initial Lines');
+    expect(root.shadowRoot!.textContent).toContain('Max Height');
+  });
+
+  it('emits a patch clearing initialLines and maxHeight when multiline is toggled off', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    await inspector.setField({ id: 1, type: 'text', label: 'Notes', subtype: 'text', multiline: true, initialLines: 5, maxHeight: 200 });
+    await waitForChanges();
+    const checkbox = Array.from(root.shadowRoot!.querySelectorAll('.field-group--checkbox'))
+      .find((l) => l.textContent && l.textContent.includes('Multiline'))!
+      .querySelector('input[type="checkbox"]') as HTMLInputElement;
+    checkbox.checked = false;
+    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+    await waitForChanges();
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: expect.objectContaining({
+          id: 1,
+          patch: expect.objectContaining({ multiline: false, initialLines: undefined, maxHeight: undefined }),
+        }),
+      })
+    );
+  });
+});

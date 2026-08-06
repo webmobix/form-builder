@@ -71,4 +71,7 @@ export interface FieldMeta {
   subtype?: FieldSubtype;
   required?: boolean;
   restrictions?: Restrictions;
+  multiline?: boolean;
+  initialLines?: number;
+  maxHeight?: number;
 }

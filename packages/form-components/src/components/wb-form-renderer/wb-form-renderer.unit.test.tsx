@@ -134,4 +134,32 @@ describe('wb-form-renderer', () => {
     expect(buttons[0].getAttribute('type')).toBe('submit');
     expect(buttons[1].getAttribute('type')).toBe('reset');
   });
+
+  it('forwards multiline, initialLines, and maxHeight to wb-form-field', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([
+      { id: 7, type: 'text', subtype: 'text', label: 'Notes', multiline: true, initialLines: 4, maxHeight: 200 },
+    ]);
+    await waitForChanges();
+    const field = root.shadowRoot!.querySelector('wb-form-field') as any;
+    expect(field.multiline).toBe(true);
+    expect(field.initialLines).toBe(4);
+    expect(field.maxHeight).toBe(200);
+    const textarea = field.shadowRoot!.querySelector('textarea') as HTMLTextAreaElement;
+    expect(textarea).not.toBeNull();
+    expect(textarea.getAttribute('rows')).toBe('4');
+    expect(textarea.style.maxHeight).toBe('200px');
+  });
+
+  it('renders a single-line input when multiline options are omitted', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([{ id: 8, type: 'text', label: 'Name' }]);
+    await waitForChanges();
+    const field = root.shadowRoot!.querySelector('wb-form-field') as any;
+    expect(field.multiline).toBeFalsy();
+    expect(field.shadowRoot!.querySelector('input')).not.toBeNull();
+    expect(field.shadowRoot!.querySelector('textarea')).toBeNull();
+  });
 });

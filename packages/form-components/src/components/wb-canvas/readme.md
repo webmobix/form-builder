@@ -136,10 +136,10 @@ Type: `Promise<void>`
 
 #### Parameters
 
-| Name    | Type                                                                                                                         | Description |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `id`    | `number`                                                                                                                     |             |
-| `patch` | `{ id?: number; type?: FieldType; label?: string; subtype?: TextSubtype; required?: boolean; restrictions?: Restrictions; }` |             |
+| Name    | Type                                                                                                                                                                                         | Description |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `id`    | `number`                                                                                                                                                                                     |             |
+| `patch` | `{ id?: number; type?: FieldType; label?: string; subtype?: TextSubtype; required?: boolean; restrictions?: Restrictions; multiline?: boolean; initialLines?: number; maxHeight?: number; }` |             |
 
 #### Returns
 

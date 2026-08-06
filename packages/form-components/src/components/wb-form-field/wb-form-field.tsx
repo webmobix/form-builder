@@ -27,11 +27,14 @@ export class WbFormField {
   @Prop() required = false;
   @Prop() subtype?: FieldSubtype;
   @Prop() restrictions?: Restrictions;
+  @Prop() multiline = false;
+  @Prop() initialLines?: number;
+  @Prop() maxHeight?: number;
 
   @State() value = '';
   @State() checked = false;
 
-  private inputEl?: HTMLInputElement;
+  private inputEl?: HTMLInputElement | HTMLTextAreaElement;
 
   componentWillLoad() {
     this.sync();
@@ -88,7 +91,6 @@ export class WbFormField {
     if (this.type === 'checkbox') this.checked = target.checked;
     else this.value = target.value;
   };
-
   formResetCallback() {
     this.value = '';
     this.checked = false;
@@ -127,20 +129,35 @@ export class WbFormField {
     const inputType = this.getInputType();
     const isNumber = inputType === 'number';
     const r = isNumber ? this.restrictions?.number : undefined;
+    const isMultiline =
+      this.type === 'text' && (this.subtype || 'text') !== 'number' && this.multiline;
+    const maxLength = !isNumber ? this.restrictions?.text?.maxLength : undefined;
 
     return (
       <label class="wb-field">
         <span class="wb-field__label">{this.label}{this.required && <span class="required-mark"> *</span>}</span>
-        <input
-          type={inputType}
-          ref={(el) => (this.inputEl = el)}
-          min={r?.min !== undefined ? r.min : undefined}
-          max={r?.max !== undefined ? r.max : undefined}
-          step={r?.step !== undefined ? r.step : undefined}
-          maxLength={!isNumber ? this.restrictions?.text?.maxLength : undefined}
-          value={this.value}
-          onInput={this.onInput}
-        />
+        {isMultiline ? (
+          <textarea
+            class="wb-field__textarea"
+            ref={(el) => (this.inputEl = el)}
+            rows={this.initialLines ?? 3}
+            maxLength={maxLength}
+            style={this.maxHeight ? { maxHeight: `${this.maxHeight}px` } : undefined}
+            value={this.value}
+            onInput={this.onInput}
+          />
+        ) : (
+          <input
+            type={inputType}
+            ref={(el) => (this.inputEl = el)}
+            min={r?.min !== undefined ? r.min : undefined}
+            max={r?.max !== undefined ? r.max : undefined}
+            step={r?.step !== undefined ? r.step : undefined}
+            maxLength={maxLength}
+            value={this.value}
+            onInput={this.onInput}
+          />
+        )}
       </label>
     );
   }

@@ -48,6 +48,9 @@ export class WbInspector {
     if (type !== 'text') {
       patch.subtype = undefined;
       patch.restrictions = undefined;
+      patch.multiline = false;
+      patch.initialLines = undefined;
+      patch.maxHeight = undefined;
     }
     this.localField = { ...this.localField!, ...patch, type };
     this.emitPatch(patch);
@@ -60,6 +63,11 @@ export class WbInspector {
       patch.restrictions = { number: { min: undefined, max: undefined, step: undefined }, text: undefined };
     } else {
       patch.restrictions = { number: undefined, text: { maxLength: undefined } };
+    }
+    if (subtype !== 'text') {
+      patch.multiline = false;
+      patch.initialLines = undefined;
+      patch.maxHeight = undefined;
     }
     this.localField = { ...this.localField!, ...patch, subtype };
     this.emitPatch(patch);
@@ -77,6 +85,31 @@ export class WbInspector {
       },
     };
     this.localField = { ...this.localField!, restrictions: patch.restrictions as any };
+    this.emitPatch(patch);
+  };
+
+  private onMultilineChange = (e: Event) => {
+    const multiline = (e.target as HTMLInputElement).checked;
+    const patch: Partial<FieldMeta> = multiline
+      ? { multiline: true }
+      : { multiline: false, initialLines: undefined, maxHeight: undefined };
+    this.localField = { ...this.localField!, ...patch };
+    this.emitPatch(patch);
+  };
+
+  private onInitialLinesInput = (e: Event) => {
+    const value = (e.target as HTMLInputElement).value.trim();
+    const patch: Partial<FieldMeta> = value === '' || isNaN(Number(value))
+      ? { initialLines: 3 }
+      : { initialLines: Number(value) };
+    this.localField = { ...this.localField!, ...patch };
+    this.emitPatch(patch);
+  };
+
+  private onMaxHeightInput = (e: Event) => {
+    const value = (e.target as HTMLInputElement).value.trim();
+    const patch: Partial<FieldMeta> = value === '' ? { maxHeight: undefined } : { maxHeight: Number(value) };
+    this.localField = { ...this.localField!, ...patch };
     this.emitPatch(patch);
   };
 
@@ -161,6 +194,31 @@ export class WbInspector {
             <span class="field-label">Max Length</span>
             <input class="input" type="number" value={restrictions.text?.maxLength ?? ''} onInput={(e) => this.onRestrictionInput('maxLength', e)} />
           </label>
+        )}
+
+        {isText && subtype === 'text' && (
+          <label class="field-group field-group--checkbox">
+            <span class="field-label">Multiline</span>
+            <input
+              type="checkbox"
+              class="checkbox"
+              checked={!!f.multiline}
+              onChange={this.onMultilineChange}
+            />
+          </label>
+        )}
+
+        {isText && subtype === 'text' && f.multiline && (
+          <div class="restrictions">
+            <label class="field-group">
+              <span class="field-label">Initial Lines</span>
+              <input class="input" type="number" value={f.initialLines ?? 3} onInput={this.onInitialLinesInput} />
+            </label>
+            <label class="field-group">
+              <span class="field-label">Max Height (px)</span>
+              <input class="input" type="number" value={f.maxHeight ?? ''} onInput={this.onMaxHeightInput} />
+            </label>
+          </div>
         )}
       </div>
     );

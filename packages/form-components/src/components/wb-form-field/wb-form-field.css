@@ -28,6 +28,18 @@
   box-sizing: border-box;
 }
 
+.wb-field__textarea {
+  width: 100%;
+  min-height: fit-content;
+  padding: 8px 10px;
+  font-size: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-sizing: border-box;
+  resize: vertical;
+  field-sizing: content;
+}
+
 .wb-field--checkbox {
   display: flex;
   align-items: center;

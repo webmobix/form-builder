@@ -73,6 +73,27 @@ describe('FieldMeta model', () => {
     expect(r.number).toBeUndefined();
     expect(r.text).toBeUndefined();
   });
+
+  it('accepts optional multiline presentation fields', () => {
+    const field: FieldMeta = {
+      id: 4,
+      type: 'text',
+      label: 'Notes',
+      multiline: true,
+      initialLines: 5,
+      maxHeight: 200,
+    };
+    expect(field.multiline).toBe(true);
+    expect(field.initialLines).toBe(5);
+    expect(field.maxHeight).toBe(200);
+  });
+
+  it('defaults multiline options to undefined when omitted', () => {
+    const field: FieldMeta = { id: 5, type: 'text', label: 'Name' };
+    expect(field.multiline).toBeUndefined();
+    expect(field.initialLines).toBeUndefined();
+    expect(field.maxHeight).toBeUndefined();
+  });
 });
 
 describe('FormValidator', () => {
