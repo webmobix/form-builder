@@ -19,7 +19,7 @@
   </head>
   <body>
     <h1>form-components dev harness</h1>
-    <p>Manual smoke test: click a palette item to add a field, drag the grip handle to reorder, select a row to edit in the inspector, submit the form.</p>
+    <p>Manual smoke test: click a palette item to add a field (inserts after the selected component, or appends when none is selected), drag the grip handle to reorder, select a row to edit in the inspector, submit the form.</p>
 
     <div class="layout">
       <wb-palette></wb-palette>
@@ -70,7 +70,7 @@
       let lastBuilderPayload = null;
 
       palette.addEventListener('wbAddField', (e) => {
-        canvas.addField(e.detail.type, e.detail.label);
+        canvas.addFieldAfter(e.detail.type, e.detail.label);
       });
       palette.addEventListener('wbPaletteDragStart', (e) => {
         canvas.beginExternalDrag();

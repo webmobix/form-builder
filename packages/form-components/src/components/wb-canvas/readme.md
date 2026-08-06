@@ -45,6 +45,23 @@ Type: `Promise<void>`
 
 
 
+### `addFieldAfter(type: FieldMeta["type"], label: string) => Promise<void>`
+
+
+
+#### Parameters
+
+| Name    | Type                                         | Description |
+| ------- | -------------------------------------------- | ----------- |
+| `type`  | `"select" \| "text" \| "date" \| "checkbox"` |             |
+| `label` | `string`                                     |             |
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
 ### `beginExternalDrag() => Promise<void>`
 
 

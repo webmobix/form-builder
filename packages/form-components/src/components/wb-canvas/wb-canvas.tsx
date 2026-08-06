@@ -49,6 +49,22 @@ export class WbCanvas {
   }
 
   @Method()
+  async addFieldAfter(type: FieldMeta['type'], label: string) {
+    const idx =
+      this.selectedId !== null
+        ? this.fields.findIndex((f) => f.id === this.selectedId) + 1
+        : this.fields.length;
+    const insertAt = idx > 0 ? idx : this.fields.length;
+    const field = { id: ++uid, type, label };
+    const next = [...this.fields];
+    next.splice(insertAt, 0, field);
+    this.fields = next;
+    this.wbChange.emit(this.fields);
+    this.selectedId = field.id;
+    this.wbFieldSelected.emit(field);
+  }
+
+  @Method()
   async importState(fields: FieldMeta[]): Promise<void> {
     if (!Array.isArray(fields)) return;
     for (const f of fields) {

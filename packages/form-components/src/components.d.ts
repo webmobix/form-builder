@@ -21,6 +21,7 @@ export namespace Components {
      */
     interface WbCanvas {
         "addField": (type: FieldMeta["type"], label: string) => Promise<void>;
+        "addFieldAfter": (type: FieldMeta["type"], label: string) => Promise<void>;
         "beginExternalDrag": () => Promise<void>;
         "cancelExternalDrag": () => Promise<void>;
         "commitExternalInsert": (type: FieldMeta["type"], label: string) => Promise<void>;

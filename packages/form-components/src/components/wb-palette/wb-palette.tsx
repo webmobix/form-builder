@@ -30,18 +30,17 @@ export class WbPalette {
   private draggedDef?: FieldTypeDef;
   private moved = false;
   private suppressClick = false;
+  private startX = 0;
+  private startY = 0;
+
+  private readonly DRAG_THRESHOLD = 5;
 
   private isFinePointer(e: PointerEvent): boolean {
     return e.pointerType === 'mouse' || matchMedia('(pointer: fine)').matches;
   }
 
-  private onPointerDown = (e: PointerEvent, def: FieldTypeDef) => {
-    if (!this.isFinePointer(e)) return;
-    e.preventDefault();
-    const btn = e.currentTarget as HTMLElement;
-    btn.setPointerCapture(e.pointerId);
-    this.draggedDef = def;
-    this.moved = false;
+  private beginDrag(e: PointerEvent, def: FieldTypeDef) {
+    if (this.dragging) return;
     this.dragging = true;
     this.suppressClick = true;
 
@@ -55,9 +54,28 @@ export class WbPalette {
     this.ghostEl = ghost;
 
     this.wbPaletteDragStart.emit(def);
+  }
+
+  private onPointerDown = (e: PointerEvent, def: FieldTypeDef) => {
+    if (!this.isFinePointer(e)) return;
+    e.preventDefault();
+    const btn = e.currentTarget as HTMLElement;
+    btn.setPointerCapture(e.pointerId);
+    this.draggedDef = def;
+    this.moved = false;
+    this.dragging = false;
+    this.suppressClick = false;
+    this.startX = e.clientX;
+    this.startY = e.clientY;
 
     const onMove = (ev: PointerEvent) => {
       ev.preventDefault();
+      if (!this.dragging) {
+        const dx = ev.clientX - this.startX;
+        const dy = ev.clientY - this.startY;
+        if (dx * dx + dy * dy < this.DRAG_THRESHOLD * this.DRAG_THRESHOLD) return;
+        this.beginDrag(ev, def);
+      }
       this.moved = true;
       if (this.ghostEl) {
         this.ghostEl.style.transform = `translate(${ev.clientX - 20}px,${ev.clientY - 16}px)`;
@@ -71,14 +89,15 @@ export class WbPalette {
       window.removeEventListener('pointercancel', onEnd);
       if (this.ghostEl) this.ghostEl.remove();
       this.ghostEl = undefined;
-      this.dragging = false;
-      if (this.moved && this.draggedDef) {
-        this.wbPaletteDragEnd.emit({ ...this.draggedDef });
-      } else {
-        this.wbPaletteDragEnd.emit(null);
+      if (this.dragging) {
+        if (this.moved && this.draggedDef) {
+          this.wbPaletteDragEnd.emit({ ...this.draggedDef });
+        } else {
+          this.wbPaletteDragEnd.emit(null);
+        }
       }
+      this.dragging = false;
       this.draggedDef = undefined;
-      setTimeout(() => { this.suppressClick = false; }, 0);
     };
 
     window.addEventListener('pointermove', onMove);

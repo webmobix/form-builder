@@ -69,6 +69,55 @@ describe('wb-canvas external drag API', () => {
   });
 });
 
+describe('wb-canvas addFieldAfter', () => {
+  it('inserts a field immediately after the selected component and emits wbChange/wbFieldSelected', async () => {
+    const { root, instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    const selectedId = canvas.fields[0].id;
+    await canvas.selectField(selectedId);
+    const wbChangeSpy = vi.fn();
+    const wbFieldSelectedSpy = vi.fn();
+    root.addEventListener('wbChange', wbChangeSpy);
+    root.addEventListener('wbFieldSelected', wbFieldSelectedSpy);
+
+    await canvas.addFieldAfter('select', 'Dropdown');
+    expect(canvas.fields).toHaveLength(3);
+    expect(canvas.fields[1].type).toBe('select');
+    expect(canvas.fields[1].label).toBe('Dropdown');
+    expect(wbChangeSpy).toHaveBeenCalled();
+    expect(wbFieldSelectedSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: expect.objectContaining({ type: 'select', label: 'Dropdown' }) })
+    );
+  });
+
+  it('appends to the end when no component is selected', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    const initialLen = canvas.fields.length;
+    await canvas.addFieldAfter('checkbox', 'Checkbox');
+    expect(canvas.fields).toHaveLength(initialLen + 1);
+    expect(canvas.fields[initialLen].type).toBe('checkbox');
+  });
+
+  it('makes the newly added field the selected component', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.addFieldAfter('date', 'Date');
+    const added = canvas.fields[canvas.fields.length - 1];
+    expect(canvas.selectedId).toBe(added.id);
+  });
+
+  it('appends when selectedId points to a field no longer present', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.selectField(99999);
+    const initialLen = canvas.fields.length;
+    await canvas.addFieldAfter('text', 'Ghost');
+    expect(canvas.fields).toHaveLength(initialLen + 1);
+    expect(canvas.fields[initialLen].label).toBe('Ghost');
+  });
+});
+
 describe('wb-canvas selection and update API', () => {
   it('selectField sets selectedId', async () => {
     const { instance } = await render(<wb-canvas></wb-canvas>);

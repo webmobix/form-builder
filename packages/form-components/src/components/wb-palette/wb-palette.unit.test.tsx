@@ -25,6 +25,7 @@ describe('wb-palette drag events', () => {
     const btn = root.shadowRoot!.querySelector('button')!;
     btn.setPointerCapture = vi.fn();
     btn.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 100, clientY: 200 }));
+    window.dispatchEvent(createPointerEvent('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: 130, clientY: 200 }));
 
     expect(dragStart).toHaveBeenCalled();
     expect(dragStart.mock.calls[0][0].detail.type).toBe('text');
@@ -39,6 +40,25 @@ describe('wb-palette drag events', () => {
     btn.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'touch', pointerId: 2, clientX: 100, clientY: 200 }));
 
     expect(dragStart).not.toHaveBeenCalled();
+  });
+
+  it('click without drag movement does NOT start drag and emits wbAddField', async () => {
+    const { root } = await render(<wb-palette></wb-palette>);
+    const dragStart = vi.fn();
+    const addField = vi.fn();
+    root.addEventListener('wbPaletteDragStart', dragStart);
+    root.addEventListener('wbAddField', addField);
+
+    const btn = root.shadowRoot!.querySelector('button')!;
+    btn.setPointerCapture = vi.fn();
+    btn.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 100, clientY: 200 }));
+    window.dispatchEvent(createPointerEvent('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: 101, clientY: 200 }));
+    window.dispatchEvent(createPointerEvent('pointerup', { pointerType: 'mouse', pointerId: 1, clientX: 101, clientY: 200 }));
+    btn.click();
+
+    expect(dragStart).not.toHaveBeenCalled();
+    expect(addField).toHaveBeenCalled();
+    expect(addField.mock.calls[0][0].detail.type).toBe('text');
   });
 
   it('click (no drag) on palette item emits wbAddField', async () => {
