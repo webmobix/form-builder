@@ -6,3 +6,4 @@ loader/
 *.log
 .DS_Store
 /.playwright-mcp
+/packages/form-components/.vitest-attachments
