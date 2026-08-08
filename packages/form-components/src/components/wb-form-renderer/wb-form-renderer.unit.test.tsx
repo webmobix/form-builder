@@ -106,7 +106,8 @@ describe('wb-form-renderer', () => {
     // mock-doc's FormData(form) isn't wired to form-associated custom elements,
     // so stub it to surface the field value the way a real browser would.
     const OrigFormData = globalThis.FormData;
-    globalThis.FormData = vi.fn((_form: HTMLFormElement) => {
+    // biome-ignore lint/complexity/useArrowFunction: must be a `function` so `new FormData(form)` can construct it
+    globalThis.FormData = vi.fn(function (_form: HTMLFormElement) {
       const fd = new OrigFormData();
       fd.append('field.1', 'Alice');
       return fd;
