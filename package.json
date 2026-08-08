@@ -2,6 +2,7 @@
   "name": "@webmobix/form-builder",
   "private": true,
   "version": "0.0.1",
+  "packageManager": "pnpm@11.20.0",
   "workspaces": [
     "packages/*"
   ],
