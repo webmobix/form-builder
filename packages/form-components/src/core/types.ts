@@ -45,7 +45,7 @@ export interface FormDefinition {
 
 export type FieldType = 'text' | 'select' | 'date' | 'checkbox';
 
-export type TextSubtype = 'text' | 'number' | 'email' | 'tel';
+export type TextSubtype = 'text' | 'number' | 'email' | 'tel' | 'url' | 'password';
 
 export type FieldSubtype = TextSubtype;
 

@@ -58,9 +58,24 @@ describe('FieldMeta model', () => {
     expect(types).toHaveLength(4);
   });
 
-  it('TextSubtype includes text, number, email, tel', () => {
-    const subtypes: TextSubtype[] = ['text', 'number', 'email', 'tel'];
-    expect(subtypes).toHaveLength(4);
+  it('TextSubtype includes text, number, email, tel, url, password', () => {
+    const subtypes: TextSubtype[] = ['text', 'number', 'email', 'tel', 'url', 'password'];
+    expect(subtypes).toHaveLength(6);
+  });
+
+  it('FieldMeta accepts subtype url', () => {
+    const field: FieldMeta = { id: 6, type: 'text', subtype: 'url', label: 'Website' };
+    expect(field.subtype).toBe('url');
+  });
+
+  it('FieldMeta accepts subtype password', () => {
+    const field: FieldMeta = { id: 7, type: 'text', subtype: 'password', label: 'Secret' };
+    expect(field.subtype).toBe('password');
+  });
+
+  it('FieldMeta still compiles when subtype is omitted', () => {
+    const field: FieldMeta = { id: 8, type: 'text', label: 'Name' };
+    expect(field.subtype).toBeUndefined();
   });
 
   it('FieldSubtype is assignable from TextSubtype', () => {

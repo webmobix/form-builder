@@ -28,16 +28,17 @@ key stays stable across the reorder.
 
 ## Methods
 
-### `addField(type: FieldMeta["type"], label: string) => Promise<void>`
+### `addField(type: FieldMeta["type"], label: string, subtype?: FieldSubtype) => Promise<void>`
 
 
 
 #### Parameters
 
-| Name    | Type                                         | Description |
-| ------- | -------------------------------------------- | ----------- |
-| `type`  | `"select" \| "text" \| "date" \| "checkbox"` |             |
-| `label` | `string`                                     |             |
+| Name      | Type                                                            | Description |
+| --------- | --------------------------------------------------------------- | ----------- |
+| `type`    | `"select" \| "text" \| "date" \| "checkbox"`                    |             |
+| `label`   | `string`                                                        |             |
+| `subtype` | `"number" \| "text" \| "email" \| "tel" \| "url" \| "password"` |             |
 
 #### Returns
 
@@ -45,16 +46,17 @@ Type: `Promise<void>`
 
 
 
-### `addFieldAfter(type: FieldMeta["type"], label: string) => Promise<void>`
+### `addFieldAfter(type: FieldMeta["type"], label: string, subtype?: FieldSubtype) => Promise<void>`
 
 
 
 #### Parameters
 
-| Name    | Type                                         | Description |
-| ------- | -------------------------------------------- | ----------- |
-| `type`  | `"select" \| "text" \| "date" \| "checkbox"` |             |
-| `label` | `string`                                     |             |
+| Name      | Type                                                            | Description |
+| --------- | --------------------------------------------------------------- | ----------- |
+| `type`    | `"select" \| "text" \| "date" \| "checkbox"`                    |             |
+| `label`   | `string`                                                        |             |
+| `subtype` | `"number" \| "text" \| "email" \| "tel" \| "url" \| "password"` |             |
 
 #### Returns
 
@@ -82,16 +84,17 @@ Type: `Promise<void>`
 
 
 
-### `commitExternalInsert(type: FieldMeta["type"], label: string) => Promise<void>`
+### `commitExternalInsert(type: FieldMeta["type"], label: string, subtype?: FieldSubtype) => Promise<void>`
 
 
 
 #### Parameters
 
-| Name    | Type                                         | Description |
-| ------- | -------------------------------------------- | ----------- |
-| `type`  | `"select" \| "text" \| "date" \| "checkbox"` |             |
-| `label` | `string`                                     |             |
+| Name      | Type                                                            | Description |
+| --------- | --------------------------------------------------------------- | ----------- |
+| `type`    | `"select" \| "text" \| "date" \| "checkbox"`                    |             |
+| `label`   | `string`                                                        |             |
+| `subtype` | `"number" \| "text" \| "email" \| "tel" \| "url" \| "password"` |             |
 
 #### Returns
 

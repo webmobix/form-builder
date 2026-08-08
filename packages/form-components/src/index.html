@@ -70,7 +70,7 @@
       let lastBuilderPayload = null;
 
       palette.addEventListener('wbAddField', (e) => {
-        canvas.addFieldAfter(e.detail.type, e.detail.label);
+        canvas.addFieldAfter(e.detail.type, e.detail.label, e.detail.subtype);
       });
       palette.addEventListener('wbPaletteDragStart', (e) => {
         canvas.beginExternalDrag();
@@ -80,7 +80,7 @@
       });
       palette.addEventListener('wbPaletteDragEnd', (e) => {
         if (e.detail) {
-          canvas.commitExternalInsert(e.detail.type, e.detail.label);
+          canvas.commitExternalInsert(e.detail.type, e.detail.label, e.detail.subtype);
         } else {
           canvas.cancelExternalDrag();
         }

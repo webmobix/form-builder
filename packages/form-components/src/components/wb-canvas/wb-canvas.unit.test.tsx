@@ -115,6 +115,38 @@ describe('wb-canvas addFieldAfter', () => {
     expect(canvas.fields).toHaveLength(initialLen + 1);
     expect(canvas.fields[initialLen].label).toBe('Ghost');
   });
+
+  it('addFieldAfter persists subtype for email', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.addFieldAfter('text', 'Email', 'email');
+    const added = canvas.fields[canvas.fields.length - 1];
+    expect(added.type).toBe('text');
+    expect(added.subtype).toBe('email');
+    expect(added.label).toBe('Email');
+    expect(added.id).toBeDefined();
+  });
+
+  it('addField without subtype creates a field with no subtype', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.addField('text', 'Name');
+    const added = canvas.fields[canvas.fields.length - 1];
+    expect(added.type).toBe('text');
+    expect(added.label).toBe('Name');
+    expect(added.subtype).toBeUndefined();
+  });
+
+  it('commitExternalInsert persists subtype from a palette drop', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    canvas.externalDrag = true;
+    canvas.hoverIndex = 0;
+    await canvas.commitExternalInsert('text', 'Password', 'password');
+    expect(canvas.fields[0].type).toBe('text');
+    expect(canvas.fields[0].subtype).toBe('password');
+    expect(canvas.fields[0].label).toBe('Password');
+  });
 });
 
 describe('wb-canvas selection and update API', () => {

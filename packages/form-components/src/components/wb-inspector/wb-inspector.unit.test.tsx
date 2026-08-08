@@ -1,6 +1,7 @@
 // biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
 import { h } from '@stencil/core';
 import { render } from '@stencil/vitest';
+import type { FieldMeta } from '../../core';
 
 // Importing the source file triggers the on-the-fly compile + customElements.define()
 import './wb-inspector';
@@ -47,65 +48,34 @@ describe('wb-inspector', () => {
     expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { id: 1, patch: { label: 'Full Name' } } }));
   });
 
-  it('emits wbFieldUpdated on type change clearing subtype and restrictions when leaving text', async () => {
+  it('renders no type or subtype selectors', async () => {
     const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
     const inspector = instance as any;
-    const spy = vi.fn();
-    root.addEventListener('wbFieldUpdated', spy);
-    await inspector.setField({ id: 1, type: 'text', label: 'Name', subtype: 'number', restrictions: { number: { min: 0 } } });
+    await inspector.setField({ id: 1, type: 'text', label: 'Name', subtype: 'email' });
     await waitForChanges();
-    const select = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
-    select.value = 'date';
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-    await waitForChanges();
-    expect(spy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        detail: expect.objectContaining({
-          id: 1,
-          patch: expect.objectContaining({ type: 'date', subtype: undefined, restrictions: undefined }),
-        }),
-      }),
-    );
+    expect(root.shadowRoot!.querySelectorAll('select').length).toBe(0);
   });
 
-  it('shows subtype selector for text fields', async () => {
+  it('shows the read-only Field display name for each subtype', async () => {
     const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
     const inspector = instance as any;
-    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
-    await waitForChanges();
-    const selects = root.shadowRoot!.querySelectorAll('select');
-    expect(selects.length).toBe(2);
-  });
-
-  it('hides subtype selector for non-text fields', async () => {
-    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
-    const inspector = instance as any;
-    await inspector.setField({ id: 1, type: 'date', label: 'Date' });
-    await waitForChanges();
-    const selects = root.shadowRoot!.querySelectorAll('select');
-    expect(selects.length).toBe(1);
-  });
-
-  it('emits wbFieldUpdated on subtype change swapping restrictions', async () => {
-    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
-    const inspector = instance as any;
-    const spy = vi.fn();
-    root.addEventListener('wbFieldUpdated', spy);
-    await inspector.setField({ id: 1, type: 'text', label: 'Age', subtype: 'text', restrictions: { text: { maxLength: 100 } } });
-    await waitForChanges();
-    const selects = root.shadowRoot!.querySelectorAll('select');
-    const subtypeSelect = selects[1] as HTMLSelectElement;
-    subtypeSelect.value = 'number';
-    subtypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    await waitForChanges();
-    expect(spy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        detail: expect.objectContaining({
-          id: 1,
-          patch: expect.objectContaining({ subtype: 'number' }),
-        }),
-      }),
-    );
+    const cases: Array<[Partial<FieldMeta>, string]> = [
+      [{ type: 'text', subtype: 'email' }, 'Email'],
+      [{ type: 'text', subtype: 'password' }, 'Password'],
+      [{ type: 'text', subtype: 'url' }, 'URL'],
+      [{ type: 'text', subtype: 'number' }, 'Number'],
+      [{ type: 'text', subtype: 'text' }, 'Text input'],
+      [{ type: 'text' }, 'Text input'],
+      [{ type: 'select' }, 'Dropdown'],
+      [{ type: 'date' }, 'Date'],
+      [{ type: 'checkbox' }, 'Checkbox'],
+    ];
+    for (const [field, expected] of cases) {
+      await inspector.setField({ id: 1, label: 'X', ...field });
+      await waitForChanges();
+      const display = root.shadowRoot!.querySelector('.field-display') as HTMLElement;
+      expect(display.textContent).toBe(expected);
+    }
   });
 
   it('shows number restriction inputs for number subtype', async () => {
@@ -117,13 +87,24 @@ describe('wb-inspector', () => {
     expect(inputs.length).toBe(3);
   });
 
-  it('shows maxLength input for text subtype', async () => {
+  it('shows maxLength input for text-like subtypes', async () => {
     const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
     const inspector = instance as any;
-    await inspector.setField({ id: 1, type: 'text', label: 'Email', subtype: 'text' });
+    for (const subtype of ['text', 'email', 'url', 'password', 'tel']) {
+      await inspector.setField({ id: 1, type: 'text', label: 'X', subtype });
+      await waitForChanges();
+      const inputs = root.shadowRoot!.querySelectorAll('input[type="number"]');
+      expect(inputs.length).toBe(1);
+    }
+  });
+
+  it('hides maxLength input for number subtype', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({ id: 1, type: 'text', label: 'Age', subtype: 'number' });
     await waitForChanges();
     const inputs = root.shadowRoot!.querySelectorAll('input[type="number"]');
-    expect(inputs.length).toBe(1);
+    expect(inputs.length).toBe(3);
   });
 
   it('hides restriction inputs for non-text types', async () => {

@@ -74,6 +74,64 @@ describe('wb-palette drag events', () => {
     expect(addField.mock.calls[0][0].detail.type).toBe('text');
   });
 
+  it('clicking each text-input subtype entry emits wbAddField with the expected subtype', async () => {
+    const { root } = await render(<wb-palette></wb-palette>);
+    const addField = vi.fn();
+    root.addEventListener('wbAddField', addField);
+
+    const buttons = Array.from(root.shadowRoot!.querySelectorAll('button')) as HTMLButtonElement[];
+    const byLabel = (label: string) => buttons.find(b => b.textContent === label)!;
+
+    byLabel('Text input').click();
+    byLabel('Email').click();
+    byLabel('URL').click();
+    byLabel('Number').click();
+    byLabel('Password').click();
+
+    expect(addField.mock.calls.map(c => c[0].detail)).toEqual([
+      { type: 'text', subtype: 'text', label: 'Text input' },
+      { type: 'text', subtype: 'email', label: 'Email' },
+      { type: 'text', subtype: 'url', label: 'URL' },
+      { type: 'text', subtype: 'number', label: 'Number' },
+      { type: 'text', subtype: 'password', label: 'Password' },
+    ]);
+  });
+
+  it('clicking non-text entries emits wbAddField with no subtype', async () => {
+    const { root } = await render(<wb-palette></wb-palette>);
+    const addField = vi.fn();
+    root.addEventListener('wbAddField', addField);
+
+    const buttons = Array.from(root.shadowRoot!.querySelectorAll('button')) as HTMLButtonElement[];
+    const byLabel = (label: string) => buttons.find(b => b.textContent === label)!;
+
+    byLabel('Dropdown').click();
+    byLabel('Date').click();
+    byLabel('Checkbox').click();
+
+    expect(addField.mock.calls.map(c => c[0].detail)).toEqual([
+      { type: 'select', label: 'Dropdown' },
+      { type: 'date', label: 'Date' },
+      { type: 'checkbox', label: 'Checkbox' },
+    ]);
+  });
+
+  it('dragging the Email entry emits wbPaletteDragEnd with subtype', async () => {
+    const { root } = await render(<wb-palette></wb-palette>);
+    const dragEnd = vi.fn();
+    root.addEventListener('wbPaletteDragEnd', dragEnd);
+
+    const buttons = Array.from(root.shadowRoot!.querySelectorAll('button')) as HTMLButtonElement[];
+    const emailBtn = buttons.find(b => b.textContent === 'Email')!;
+    emailBtn.setPointerCapture = vi.fn();
+    emailBtn.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 100, clientY: 200 }));
+    window.dispatchEvent(createPointerEvent('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: 130, clientY: 200 }));
+    window.dispatchEvent(createPointerEvent('pointerup', { pointerType: 'mouse', pointerId: 1, clientX: 130, clientY: 200 }));
+
+    expect(dragEnd).toHaveBeenCalled();
+    expect(dragEnd.mock.calls[0][0].detail).toEqual({ type: 'text', subtype: 'email', label: 'Email' });
+  });
+
   it('canvas commitExternalInsert uses same uid source as addField', async () => {
     const { instance } = await render(<wb-canvas></wb-canvas>);
     const canvas = instance as any;

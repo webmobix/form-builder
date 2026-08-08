@@ -2,6 +2,26 @@
 import { Component, Event, type EventEmitter, h, Method, Prop, State } from '@stencil/core';
 import type { FieldMeta, FieldSubtype, FieldType } from '../../core';
 
+function displayName(type: FieldType, subtype?: FieldSubtype): string {
+  if (type === 'select') return 'Dropdown';
+  if (type === 'date') return 'Date';
+  if (type === 'checkbox') return 'Checkbox';
+  switch (subtype) {
+    case 'email':
+      return 'Email';
+    case 'url':
+      return 'URL';
+    case 'number':
+      return 'Number';
+    case 'password':
+      return 'Password';
+    case 'tel':
+      return 'Telephone';
+    default:
+      return 'Text input';
+  }
+}
+
 @Component({
   tag: 'wb-inspector',
   styleUrl: 'wb-inspector.css',
@@ -41,37 +61,6 @@ export class WbInspector {
     const required = (e.target as HTMLInputElement).checked;
     this.localField = { ...this.localField!, required };
     this.emitPatch({ required });
-  };
-
-  private onTypeChange = (e: Event) => {
-    const type = (e.target as HTMLSelectElement).value as FieldType;
-    const patch: Partial<FieldMeta> = { type };
-    if (type !== 'text') {
-      patch.subtype = undefined;
-      patch.restrictions = undefined;
-      patch.multiline = false;
-      patch.initialLines = undefined;
-      patch.maxHeight = undefined;
-    }
-    this.localField = { ...this.localField!, ...patch, type };
-    this.emitPatch(patch);
-  };
-
-  private onSubtypeChange = (e: Event) => {
-    const subtype = (e.target as HTMLSelectElement).value as FieldSubtype;
-    const patch: Partial<FieldMeta> = { subtype };
-    if (subtype === 'number') {
-      patch.restrictions = { number: { min: undefined, max: undefined, step: undefined }, text: undefined };
-    } else {
-      patch.restrictions = { number: undefined, text: { maxLength: undefined } };
-    }
-    if (subtype !== 'text') {
-      patch.multiline = false;
-      patch.initialLines = undefined;
-      patch.maxHeight = undefined;
-    }
-    this.localField = { ...this.localField!, ...patch, subtype };
-    this.emitPatch(patch);
   };
 
   private onRestrictionInput = (key: string, e: Event) => {
@@ -140,29 +129,10 @@ export class WbInspector {
           <input type="checkbox" class="checkbox" checked={!!f.required} onChange={this.onRequiredChange} />
         </label>
 
-        <label class="field-group">
-          <span class="field-label">Type</span>
-          <select class="select" onChange={this.onTypeChange}>
-            {(['text', 'select', 'date', 'checkbox'] as FieldType[]).map(t => (
-              <option key={t} value={t} selected={f.type === t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {isText && (
-          <label class="field-group">
-            <span class="field-label">Subtype</span>
-            <select class="select" onChange={this.onSubtypeChange}>
-              {(['text', 'number', 'email', 'tel'] as FieldSubtype[]).map(s => (
-                <option key={s} value={s} selected={subtype === s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+        <div class="field-group">
+          <span class="field-label">Field</span>
+          <span class="field-display">{displayName(f.type, f.subtype)}</span>
+        </div>
 
         {isText && subtype === 'number' && (
           <div class="restrictions">
@@ -181,7 +151,7 @@ export class WbInspector {
           </div>
         )}
 
-        {isText && subtype === 'text' && (
+        {isText && subtype !== 'number' && (
           <label class="field-group">
             <span class="field-label">Max Length</span>
             <input class="input" type="number" value={restrictions.text?.maxLength ?? ''} onInput={e => this.onRestrictionInput('maxLength', e)} />

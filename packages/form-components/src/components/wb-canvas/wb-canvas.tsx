@@ -1,6 +1,6 @@
 // biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
 import { Component, Event, type EventEmitter, Fragment, h, Method, State } from '@stencil/core';
-import type { FieldMeta } from '../../core';
+import type { FieldMeta, FieldSubtype } from '../../core';
 
 let uid = 0;
 
@@ -44,16 +44,16 @@ export class WbCanvas {
   }
 
   @Method()
-  async addField(type: FieldMeta['type'], label: string) {
-    this.fields = [...this.fields, { id: ++uid, type, label }];
+  async addField(type: FieldMeta['type'], label: string, subtype?: FieldSubtype) {
+    this.fields = [...this.fields, { id: ++uid, type, label, ...(subtype ? { subtype } : {}) }];
     this.wbChange.emit(this.fields);
   }
 
   @Method()
-  async addFieldAfter(type: FieldMeta['type'], label: string) {
+  async addFieldAfter(type: FieldMeta['type'], label: string, subtype?: FieldSubtype) {
     const idx = this.selectedId !== null ? this.fields.findIndex(f => f.id === this.selectedId) + 1 : this.fields.length;
     const insertAt = idx > 0 ? idx : this.fields.length;
-    const field = { id: ++uid, type, label };
+    const field = { id: ++uid, type, label, ...(subtype ? { subtype } : {}) };
     const next = [...this.fields];
     next.splice(insertAt, 0, field);
     this.fields = next;
@@ -122,10 +122,10 @@ export class WbCanvas {
   }
 
   @Method()
-  async commitExternalInsert(type: FieldMeta['type'], label: string) {
+  async commitExternalInsert(type: FieldMeta['type'], label: string, subtype?: FieldSubtype) {
     const idx = this.hoverIndex !== null ? this.hoverIndex : this.fields.length;
     const next = [...this.fields];
-    next.splice(idx, 0, { id: ++uid, type, label });
+    next.splice(idx, 0, { id: ++uid, type, label, ...(subtype ? { subtype } : {}) });
     this.fields = next;
     this.wbChange.emit(this.fields);
     this.externalDrag = false;

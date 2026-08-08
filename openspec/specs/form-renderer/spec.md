@@ -19,6 +19,14 @@ The `wb-form-renderer` component SHALL accept a `fields: FieldMeta[]` prop and r
 - **WHEN** `fields` contains an entry `{ id: 3, type: 'text', label: 'Age', subtype: 'number', restrictions: { number: { min: 0, max: 120 } } }`
 - **THEN** the rendered `wb-form-field` has `subtype="number"` and `restrictions` equal to `{ number: { min: 0, max: 120 } }`
 
+#### Scenario: url subtype is forwarded
+- **WHEN** `fields` contains an entry `{ id: 4, type: 'text', label: 'Website', subtype: 'url' }`
+- **THEN** the rendered `wb-form-field` has `subtype="url"` and renders an `<input type="url">`
+
+#### Scenario: password subtype is forwarded
+- **WHEN** `fields` contains an entry `{ id: 5, type: 'text', label: 'Secret', subtype: 'password' }`
+- **THEN** the rendered `wb-form-field` has `subtype="password"` and renders an `<input type="password">`
+
 #### Scenario: required flag is forwarded when set
 - **WHEN** a field entry carries a truthy `required` flag
 - **THEN** the rendered `wb-form-field` has its `required` prop set to `true`

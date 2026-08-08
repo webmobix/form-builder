@@ -1,14 +1,19 @@
 // biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
 import { Component, Event, type EventEmitter, h, State } from '@stencil/core';
-import type { FieldType } from '../../core';
+import type { FieldSubtype, FieldType } from '../../core';
 
 export interface FieldTypeDef {
   type: FieldType;
   label: string;
+  subtype?: FieldSubtype;
 }
 
 const FIELD_TYPES: FieldTypeDef[] = [
-  { type: 'text', label: 'Text input' },
+  { type: 'text', subtype: 'text', label: 'Text input' },
+  { type: 'text', subtype: 'email', label: 'Email' },
+  { type: 'text', subtype: 'url', label: 'URL' },
+  { type: 'text', subtype: 'number', label: 'Number' },
+  { type: 'text', subtype: 'password', label: 'Password' },
   { type: 'select', label: 'Dropdown' },
   { type: 'date', label: 'Date' },
   { type: 'checkbox', label: 'Checkbox' },
@@ -113,7 +118,7 @@ export class WbPalette {
           <button
             type="button"
             class={{ item: true, dragging: this.dragging }}
-            key={f.type}
+            key={f.label}
             onClick={() => {
               if (this.suppressClick) return;
               this.wbAddField.emit(f);

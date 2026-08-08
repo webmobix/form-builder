@@ -20,11 +20,11 @@ export namespace Components {
      * key stays stable across the reorder.
      */
     interface WbCanvas {
-        "addField": (type: FieldMeta["type"], label: string) => Promise<void>;
-        "addFieldAfter": (type: FieldMeta["type"], label: string) => Promise<void>;
+        "addField": (type: FieldMeta["type"], label: string, subtype?: FieldSubtype) => Promise<void>;
+        "addFieldAfter": (type: FieldMeta["type"], label: string, subtype?: FieldSubtype) => Promise<void>;
         "beginExternalDrag": () => Promise<void>;
         "cancelExternalDrag": () => Promise<void>;
-        "commitExternalInsert": (type: FieldMeta["type"], label: string) => Promise<void>;
+        "commitExternalInsert": (type: FieldMeta["type"], label: string, subtype?: FieldSubtype) => Promise<void>;
         "importState": (fields: FieldMeta[]) => Promise<void>;
         "selectField": (id: number | null) => Promise<void>;
         "setExternalHoverIndex": (y: number) => Promise<void>;

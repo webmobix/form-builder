@@ -30,6 +30,28 @@ describe('wb-form-field subtype and restrictions', () => {
     expect(input.getAttribute('type')).toBe('tel');
   });
 
+  it('renders url input for url subtype', async () => {
+    const { root } = await render(<wb-form-field name="website" type="text" label="Website" subtype="url"></wb-form-field>);
+    const input = root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(input.getAttribute('type')).toBe('url');
+  });
+
+  it('renders password input for password subtype', async () => {
+    const { root } = await render(<wb-form-field name="secret" type="text" label="Secret" subtype="password"></wb-form-field>);
+    const input = root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(input.getAttribute('type')).toBe('password');
+  });
+
+  it('applies maxLength to url and password subtypes', async () => {
+    const { root } = await render(<wb-form-field name="website" type="text" label="Website" subtype="url" restrictions={{ text: { maxLength: 100 } }}></wb-form-field>);
+    const urlInput = root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(urlInput.getAttribute('maxLength')).toBe('100');
+
+    const { root: root2 } = await render(<wb-form-field name="secret" type="text" label="Secret" subtype="password" restrictions={{ text: { maxLength: 50 } }}></wb-form-field>);
+    const pwInput = root2.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(pwInput.getAttribute('maxLength')).toBe('50');
+  });
+
   it('renders date input for date type', async () => {
     const { root } = await render(<wb-form-field name="dob" type="date" label="Date"></wb-form-field>);
     const input = root.shadowRoot!.querySelector('input') as HTMLInputElement;

@@ -27,47 +27,70 @@ The inspector SHALL provide an editable label input bound to the selected field'
 - **THEN** the inspector SHALL NOT emit an update with an empty label and SHALL show a validation error on the label input
 
 ### Requirement: Editable type propagated to the canvas
-The inspector SHALL provide a type selector offering the four base field types (`text`, `select`, `date`, `checkbox`). Changing the type SHALL update the canvas row's type, preserving the field's stable `id`.
+The inspector SHALL NOT provide a type selector. A field's `type` is fixed at creation time (by the palette entry used to add it) and cannot be changed from the inspector. The inspector SHALL show a read-only display name (see "Read-only field display name") instead of any `type` mutation control.
 
-#### Scenario: Changing type updates the canvas row
-- **WHEN** the user selects a different base type in the inspector
-- **THEN** the inspector emits an update with the field `id` and the new type, and the canvas updates that row's type
+#### Scenario: No type selector is rendered
+- **WHEN** any field is selected in the inspector
+- **THEN** the inspector does not render a `<select>` for `type` and SHALL NOT emit a patch changing `type`
 
-#### Scenario: Switching away from text clears subtype and text/number restrictions
-- **WHEN** the user changes the type from `text` to a non-text type
-- **THEN** the emitted update clears `subtype` and any `text`/`number` restrictions so the field no longer carries inapplicable properties
+#### Scenario: Switching away from text is no longer an inspector action
+- **WHEN** the user is editing a text field in the inspector
+- **THEN** there is no control to change the field's `type` to a non-text type; switching type requires deleting and re-adding the field from the palette
 
 ### Requirement: Editable subtype for text fields
-For a field whose type is `text`, the inspector SHALL provide a subtype selector offering at least `text`, `number`, `email`, and `tel`. Changing the subtype SHALL update the field's `subtype` property, preserving the field's stable `id`. The subtype selector SHALL NOT be shown for non-text types.
+The inspector SHALL NOT provide a subtype selector. A text field's `subtype` is fixed at creation time (by the palette entry used to add it) and cannot be changed from the inspector. The inspector SHALL derive the field's display name from its fixed `type` and `subtype` (see "Read-only field display name").
 
-#### Scenario: Subtype selector appears for text fields
+#### Scenario: No subtype selector is rendered for text fields
 - **WHEN** the selected field's type is `text`
-- **THEN** the inspector renders a subtype selector and shows the field's current subtype (defaulting to `text` when unset)
+- **THEN** the inspector does not render a `<select>` for `subtype` and SHALL NOT emit a patch changing `subtype`
 
-#### Scenario: Subtype selector hidden for non-text fields
+#### Scenario: No subtype selector for non-text fields
 - **WHEN** the selected field's type is not `text`
-- **THEN** the inspector does not render a subtype selector
+- **THEN** the inspector does not render a subtype selector (unchanged behavior, now also true because the selector no longer exists)
 
-#### Scenario: Changing subtype updates the field
-- **WHEN** the user selects a different subtype
-- **THEN** the inspector emits an update with the field `id` and the new subtype, and the canvas stores it on the field
+#### Scenario: Switching subtype is no longer an inspector action
+- **WHEN** the user is editing a text field in the inspector
+- **THEN** there is no control to change the field's `subtype`; switching subtype requires deleting and re-adding the field from the palette
 
-#### Scenario: Switching subtype clears inapplicable restrictions
-- **WHEN** the user changes the subtype from `text` to `number` (or vice versa)
-- **THEN** the emitted update clears the restrictions for the previous subtype and seeds empty defaults for the new subtype
+### Requirement: Read-only field display name in the inspector
+The inspector SHALL render a read-only "Field" display line showing a friendly name derived from the selected field's `type` and `subtype`. The mapping SHALL be: `text`+`text` (or unset) → "Text input", `text`+`email` → "Email", `text`+`url` → "URL", `text`+`number` → "Number", `text`+`password` → "Password", `text`+`tel` → "Telephone", `select` → "Dropdown", `date` → "Date", `checkbox` → "Checkbox". The display SHALL NOT be an interactive control and SHALL NOT emit a patch.
+
+#### Scenario: Email field shows "Email"
+- **WHEN** the selected field has `type: 'text'` and `subtype: 'email'`
+- **THEN** the inspector's read-only "Field" display shows "Email"
+
+#### Scenario: Password field shows "Password"
+- **WHEN** the selected field has `type: 'text'` and `subtype: 'password'`
+- **THEN** the inspector's read-only "Field" display shows "Password"
+
+#### Scenario: URL field shows "URL"
+- **WHEN** the selected field has `type: 'text'` and `subtype: 'url'`
+- **THEN** the inspector's read-only "Field" display shows "URL"
+
+#### Scenario: Plain text field shows "Text input"
+- **WHEN** the selected field has `type: 'text'` and `subtype` is `'text'` or unset
+- **THEN** the inspector's read-only "Field" display shows "Text input"
+
+#### Scenario: Dropdown field shows "Dropdown"
+- **WHEN** the selected field has `type: 'select'`
+- **THEN** the inspector's read-only "Field" display shows "Dropdown"
+
+#### Scenario: Display name is not editable
+- **WHEN** the user interacts with the "Field" display line
+- **THEN** no control emits a patch and the field's `type`/`subtype` are unchanged
 
 ### Requirement: Type and subtype-specific restrictions
-The inspector SHALL render restriction inputs conditionally based on the field's type and subtype. For subtype `number`, the inspector SHALL provide `min`, `max`, and `step` numeric inputs. For subtype `text`, the inspector SHALL provide a `maxLength` numeric input. Restrictions SHALL be stored on the field and propagated to the canvas.
+The inspector SHALL render restriction inputs conditionally based on the field's fixed `type` and `subtype`. For `subtype === 'number'`, the inspector SHALL provide `min`, `max`, and `step` numeric inputs. For text-like subtypes (`text`, `email`, `url`, `password`, `tel`, or unset), the inspector SHALL provide a `maxLength` numeric input. Restrictions SHALL be stored on the field and propagated to the canvas. The restriction inputs SHALL remain editable; only the type/subtype selectors were removed.
 
 #### Scenario: Number restriction inputs appear for number subtype
 - **WHEN** the selected field's type is `text` and subtype is `number`
 - **THEN** the inspector renders `min`, `max`, and `step` numeric inputs showing the field's current number restrictions (empty when unset)
 
-#### Scenario: Text restriction input appears for text subtype
-- **WHEN** the selected field's type is `text` and subtype is `text`
+#### Scenario: maxLength input appears for text-like subtypes
+- **WHEN** the selected field's type is `text` and subtype is one of `text` (or unset), `email`, `url`, `password`, or `tel`
 - **THEN** the inspector renders a `maxLength` numeric input showing the field's current text restriction (empty when unset)
 
-#### Scenario: Restriction inputs hidden for non-applicable types
+#### Scenario: Restriction inputs hidden for non-text types
 - **WHEN** the selected field's type is `select`, `date`, or `checkbox`
 - **THEN** the inspector does not render number or text restriction inputs
 
@@ -95,11 +118,15 @@ The inspector SHALL emit a `wbFieldUpdated` event carrying `{ id: number; patch:
 - **THEN** the canvas makes no change and does not emit `wbChange`
 
 ### Requirement: Field model carries subtype and restrictions
-`form-core` SHALL define an extended `FieldMeta` that includes optional `subtype`, `restrictions`, `multiline`, `initialLines`, and `maxHeight`. `subtype` SHALL apply only to fields whose type is `text`. `restrictions` SHALL be keyed by subtype (`number` → `{ min?, max?, step? }`, `text` → `{ maxLength? }`). `multiline`, `initialLines`, and `maxHeight` SHALL apply only to fields whose `type` is `text` and `subtype` is `text`; they are presentation-only and SHALL NOT participate in value validation. `wb-canvas` and `wb-inspector` SHALL import this `FieldMeta` as the single source of truth for field shape.
+`form-core` SHALL define an extended `FieldMeta` that includes optional `subtype`, `restrictions`, `multiline`, `initialLines`, and `maxHeight`. `subtype` SHALL apply only to fields whose type is `text`. `TextSubtype` SHALL include `'text'`, `'number'`, `'email'`, `'tel'`, `'url'`, and `'password'`. `restrictions` SHALL be keyed by subtype (`number` → `{ min?, max?, step? }`, `text` → `{ maxLength? }`); text-like subtypes (`text`, `email`, `url`, `password`, `tel`) share the `text` restrictions key. `multiline`, `initialLines`, and `maxHeight` SHALL apply only to fields whose `type` is `text` and `subtype` is `text`; they are presentation-only and SHALL NOT participate in value validation. `wb-canvas` and `wb-inspector` SHALL import this `FieldMeta` as the single source of truth for field shape.
 
 #### Scenario: FieldMeta includes subtype and restrictions
 - **WHEN** the field model is defined
 - **THEN** `FieldMeta` exposes `subtype?: FieldSubtype` and `restrictions?: Restrictions` alongside `id`, `type`, and `label`
+
+#### Scenario: TextSubtype includes url and password
+- **WHEN** the field model is defined
+- **THEN** `TextSubtype` is `'text' | 'number' | 'email' | 'tel' | 'url' | 'password'`
 
 #### Scenario: FieldMeta includes multiline presentation fields
 - **WHEN** the field model is defined
@@ -145,7 +172,7 @@ The inspector SHALL emit a `wbFieldUpdated` event carrying `{ id: number; patch:
 - **THEN** `ElementInternals.setValidity` is called with the textarea element as the anchor and the missing-value message names the field label
 
 ### Requirement: Inspector provides a multiline toggle for plain-text fields
-The inspector SHALL render a "Multiline" checkbox toggle for fields whose `type` is `text` and whose `subtype` is `text` (or unset, defaulting to `text`). The toggle SHALL NOT be shown for non-text types or for `text` subtypes other than `text` (number, email, tel). Toggling it SHALL emit a `wbFieldUpdated` event with `{ multiline: true }` or `{ multiline: false }` in the patch.
+The inspector SHALL render a "Multiline" checkbox toggle for fields whose `type` is `text` and whose `subtype` is `text` (or unset, defaulting to `text`). The toggle SHALL NOT be shown for `text` subtypes other than `text` (number, email, url, password, tel). Toggling it SHALL emit a `wbFieldUpdated` event with `{ multiline: true }` or `{ multiline: false }` in the patch.
 
 #### Scenario: Multiline toggle appears for plain-text fields
 - **WHEN** the selected field's `type` is `text` and `subtype` is `text` (or unset)
@@ -156,7 +183,7 @@ The inspector SHALL render a "Multiline" checkbox toggle for fields whose `type`
 - **THEN** the inspector does not render a "Multiline" toggle
 
 #### Scenario: Multiline toggle hidden for non-plain-text subtypes
-- **WHEN** the selected field's `type` is `text` and `subtype` is `number`, `email`, or `tel`
+- **WHEN** the selected field's `type` is `text` and `subtype` is `number`, `email`, `url`, `password`, or `tel`
 - **THEN** the inspector does not render a "Multiline" toggle
 
 #### Scenario: Toggling multiline emits an update

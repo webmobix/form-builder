@@ -56,6 +56,28 @@ describe('wb-form-renderer', () => {
     expect(input.getAttribute('max')).toBe('120');
   });
 
+  it('forwards url subtype to wb-form-field', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([{ id: 4, type: 'text', label: 'Website', subtype: 'url' }]);
+    await waitForChanges();
+    const field = root.shadowRoot!.querySelector('wb-form-field') as any;
+    expect(field.subtype).toBe('url');
+    const input = field.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(input.getAttribute('type')).toBe('url');
+  });
+
+  it('forwards password subtype to wb-form-field', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([{ id: 5, type: 'text', label: 'Secret', subtype: 'password' }]);
+    await waitForChanges();
+    const field = root.shadowRoot!.querySelector('wb-form-field') as any;
+    expect(field.subtype).toBe('password');
+    const input = field.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(input.getAttribute('type')).toBe('password');
+  });
+
   it('setFields updates the rendered fields', async () => {
     const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
     const renderer = instance as any;
