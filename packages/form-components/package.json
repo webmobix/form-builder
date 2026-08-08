@@ -48,6 +48,7 @@
   ],
   "scripts": {
     "build": "stencil build",
+    "prepublishOnly": "stencil build",
     "start": "stencil build --dev --watch --serve",
     "test": "vitest run",
     "test:watch": "vitest",

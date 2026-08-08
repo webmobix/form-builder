@@ -19,6 +19,7 @@
   ],
   "scripts": {
     "build": "npm run tsc",
+    "prepublishOnly": "npm run tsc",
     "tsc": "tsc -p . --outDir ./dist",
     "prebuild": "npm run build --workspace @webmobix/form-components"
   },
