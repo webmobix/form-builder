@@ -29,8 +29,8 @@
 
     <div class="section">
       <div class="section-title">Builder payload</div>
-      <button id="dump-builder">Dump builder payload</button>
-      <button id="export-json">Export JSON</button>
+      <button type="button" id="dump-builder">Dump builder payload</button>
+      <button type="button" id="export-json">Export JSON</button>
     </div>
 
     <div class="section">
@@ -38,7 +38,7 @@
       <textarea id="import-input" rows="6" style="width:100%;font-family:monospace;font-size:12px;" placeholder='Paste JSON like [{"id":1,"type":"text","label":"Name"}]'></textarea>
       <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
         <input type="file" id="import-file" accept="application/json" />
-        <button id="load-into-canvas">Load into canvas</button>
+        <button type="button" id="load-into-canvas">Load into canvas</button>
       </div>
     </div>
 
@@ -124,7 +124,7 @@
       loadBtn.addEventListener('click', async () => {
         let raw;
         try {
-          const file = importFile.files && importFile.files[0];
+          const file = importFile.files?.[0];
           if (file) {
             raw = await file.text();
           } else {
@@ -133,7 +133,7 @@
           const parsed = JSON.parse(raw);
           await canvas.importState(parsed);
         } catch (err) {
-          out.textContent = 'Error loading into canvas: ' + (err && err.message ? err.message : String(err));
+          out.textContent = `Error loading into canvas: ${err?.message ? err.message : String(err)}`;
         }
       });
     </script>

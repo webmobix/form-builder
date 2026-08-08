@@ -1,5 +1,6 @@
-import { Component, Prop, State, Method, Event, EventEmitter, Element, h } from '@stencil/core';
-import type { FieldMeta } from '@webmobix/form-core';
+// biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
+import { Component, Element, Event, type EventEmitter, h, Method, Prop, State } from '@stencil/core';
+import type { FieldMeta } from '../../core';
 
 @Component({
   tag: 'wb-form-renderer',
@@ -10,6 +11,7 @@ export class WbFormRenderer {
   @Element() el: HTMLElement;
 
   @Prop({ mutable: true }) fields: FieldMeta[] = [];
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: incremented in setFields to force a re-render on prop mutation
   @State() private shadow: number = 0;
 
   @Event() wbSubmit: EventEmitter<Record<string, string>>;
@@ -35,7 +37,7 @@ export class WbFormRenderer {
     return (
       <form onSubmit={this.handleSubmit}>
         <div class="fields">
-          {this.fields.map((entry) => (
+          {this.fields.map(entry => (
             <wb-form-field
               key={entry.id}
               name={`field.${entry.id}`}

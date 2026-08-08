@@ -1,5 +1,6 @@
-import { Component, State, Method, Event, EventEmitter, Fragment, h } from '@stencil/core';
-import type { FieldMeta } from '@webmobix/form-core';
+// biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
+import { Component, Event, type EventEmitter, Fragment, h, Method, State } from '@stencil/core';
+import type { FieldMeta } from '../../core';
 
 let uid = 0;
 
@@ -50,10 +51,7 @@ export class WbCanvas {
 
   @Method()
   async addFieldAfter(type: FieldMeta['type'], label: string) {
-    const idx =
-      this.selectedId !== null
-        ? this.fields.findIndex((f) => f.id === this.selectedId) + 1
-        : this.fields.length;
+    const idx = this.selectedId !== null ? this.fields.findIndex(f => f.id === this.selectedId) + 1 : this.fields.length;
     const insertAt = idx > 0 ? idx : this.fields.length;
     const field = { id: ++uid, type, label };
     const next = [...this.fields];
@@ -78,7 +76,7 @@ export class WbCanvas {
     }
     this.fields = fields;
     if (fields.length > 0) {
-      uid = Math.max(...fields.map((f) => f.id), uid);
+      uid = Math.max(...fields.map(f => f.id), uid);
     }
     this.wbChange.emit(this.fields);
   }
@@ -90,7 +88,7 @@ export class WbCanvas {
 
   @Method()
   async updateField(id: number, patch: Partial<FieldMeta>) {
-    const idx = this.fields.findIndex((f) => f.id === id);
+    const idx = this.fields.findIndex(f => f.id === id);
     if (idx === -1) return;
     const next = [...this.fields];
     next[idx] = { ...next[idx], ...patch, id };
@@ -167,6 +165,17 @@ export class WbCanvas {
     }
   };
 
+  private onWrapKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-row]')) return;
+    e.preventDefault();
+    if (this.selectedId !== null) {
+      this.selectedId = null;
+      this.wbFieldDeselected.emit();
+    }
+  };
+
   private startDrag = (field: FieldMeta, e: PointerEvent) => {
     const handle = e.currentTarget as HTMLElement;
     handle.setPointerCapture(e.pointerId);
@@ -217,7 +226,7 @@ export class WbCanvas {
     this.scrollDir = 0;
     if (this.raf) cancelAnimationFrame(this.raf);
     if (this.hoverIndex !== null) {
-      const from = this.fields.findIndex((f) => f.id === id);
+      const from = this.fields.findIndex(f => f.id === id);
       const next = [...this.fields];
       const [item] = next.splice(from, 1);
       const adj = this.hoverIndex > from ? this.hoverIndex - 1 : this.hoverIndex;
@@ -233,22 +242,25 @@ export class WbCanvas {
 
   render() {
     return (
-      <div class="wrap" ref={(el) => (this.listEl = el)} onClick={this.onWrapClick}>
+      // biome-ignore lint/a11y/noStaticElementInteractions: container that deselects on empty-area click; rows are real buttons
+      <div class="wrap" ref={el => (this.listEl = el)} onClick={this.onWrapClick} onKeyDown={this.onWrapKeyDown}>
         {this.fields.map((f, idx) => (
+          // biome-ignore lint/correctness/useJsxKeyInIterable: Stencil Fragment takes no key; the keyed element is the row button below
           <Fragment>
             {this.hoverIndex === idx && <div class="indicator" />}
-            <div
+            <button
+              type="button"
               class={{ row: true, dragging: this.draggingId === f.id, selected: this.selectedId === f.id }}
               data-row
               key={f.id}
               onClick={() => this.onRowClick(f)}
             >
-              <span class="handle" onPointerDown={(e) => this.startDrag(f, e)}>
+              <span class="handle" onPointerDown={e => this.startDrag(f, e)}>
                 ⠿
               </span>
               <span class="body">{f.label}</span>
               <span class="type">{f.type}</span>
-            </div>
+            </button>
           </Fragment>
         ))}
         {this.hoverIndex === this.fields.length && <div class="indicator" />}

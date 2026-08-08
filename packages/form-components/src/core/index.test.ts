@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { FormValidator } from './validator';
+import { describe, expect, it } from 'vitest';
 import { evaluateRule } from './rules';
-import type { JsonSchema, UiRule, FieldMeta, FieldType, TextSubtype, FieldSubtype, NumberRestrictions, TextRestrictions, Restrictions } from './types';
+import type { FieldMeta, FieldSubtype, FieldType, JsonSchema, NumberRestrictions, Restrictions, TextRestrictions, TextSubtype, UiRule } from './types';
+import { FormValidator } from './validator';
 
 describe('FieldMeta model', () => {
   it('has the required base fields', () => {
@@ -127,7 +127,7 @@ describe('FormValidator', () => {
   it('reports a bad format', () => {
     const v = new FormValidator(schema);
     const errors = v.validate({ personal: { email: 'not-an-email' } });
-    expect(errors.some((e) => e.message?.includes('format'))).toBe(true);
+    expect(errors.some(e => e.message?.includes('format'))).toBe(true);
   });
 });
 

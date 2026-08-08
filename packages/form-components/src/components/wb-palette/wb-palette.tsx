@@ -1,5 +1,6 @@
-import { Component, Event, EventEmitter, h, State } from '@stencil/core';
-import type { FieldType } from '@webmobix/form-core';
+// biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
+import { Component, Event, type EventEmitter, h, State } from '@stencil/core';
+import type { FieldType } from '../../core';
 
 export interface FieldTypeDef {
   type: FieldType;
@@ -108,12 +109,16 @@ export class WbPalette {
   render() {
     return (
       <div class="panel">
-        {FIELD_TYPES.map((f) => (
+        {FIELD_TYPES.map(f => (
           <button
+            type="button"
             class={{ item: true, dragging: this.dragging }}
             key={f.type}
-            onClick={() => { if (this.suppressClick) return; this.wbAddField.emit(f); }}
-            onPointerDown={(e) => this.onPointerDown(e, f)}
+            onClick={() => {
+              if (this.suppressClick) return;
+              this.wbAddField.emit(f);
+            }}
+            onPointerDown={e => this.onPointerDown(e, f)}
           >
             {f.label}
           </button>

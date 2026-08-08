@@ -1,5 +1,6 @@
-import { Component, Prop, State, AttachInternals, Watch, h } from '@stencil/core';
-import type { FieldType, FieldSubtype, Restrictions } from '@webmobix/form-core';
+// biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
+import { AttachInternals, Component, h, Prop, State, Watch } from '@stencil/core';
+import type { FieldSubtype, FieldType, Restrictions } from '../../core';
 
 /**
  * Renders ONE field from the JSON Schema / UI Schema pair and participates
@@ -68,7 +69,7 @@ export class WbFormField {
       if (subtype === 'number' && this.restrictions?.number) {
         const num = Number(raw);
         const r = this.restrictions.number;
-        if (!isNaN(num)) {
+        if (!Number.isNaN(num)) {
           if (r.min !== undefined && num < r.min) {
             validity.rangeUnderflow = true;
             message = `${this.label} must be at least ${r.min}`;
@@ -115,13 +116,11 @@ export class WbFormField {
     if (this.type === 'checkbox') {
       return (
         <label class="wb-field wb-field--checkbox">
-          <input
-            type="checkbox"
-            ref={(el) => (this.inputEl = el)}
-            checked={this.checked}
-            onChange={this.onInput}
-          />
-          <span>{this.label}{this.required && <span class="required-mark"> *</span>}</span>
+          <input type="checkbox" ref={el => (this.inputEl = el)} checked={this.checked} onChange={this.onInput} />
+          <span>
+            {this.label}
+            {this.required && <span class="required-mark"> *</span>}
+          </span>
         </label>
       );
     }
@@ -129,17 +128,20 @@ export class WbFormField {
     const inputType = this.getInputType();
     const isNumber = inputType === 'number';
     const r = isNumber ? this.restrictions?.number : undefined;
-    const isMultiline =
-      this.type === 'text' && (this.subtype || 'text') !== 'number' && this.multiline;
+    const isMultiline = this.type === 'text' && (this.subtype || 'text') !== 'number' && this.multiline;
     const maxLength = !isNumber ? this.restrictions?.text?.maxLength : undefined;
 
     return (
-      <label class="wb-field">
-        <span class="wb-field__label">{this.label}{this.required && <span class="required-mark"> *</span>}</span>
+      <label class="wb-field" htmlFor={this.name}>
+        <span class="wb-field__label">
+          {this.label}
+          {this.required && <span class="required-mark"> *</span>}
+        </span>
         {isMultiline ? (
           <textarea
+            id={this.name}
             class="wb-field__textarea"
-            ref={(el) => (this.inputEl = el)}
+            ref={el => (this.inputEl = el)}
             rows={this.initialLines ?? 3}
             maxLength={maxLength}
             style={this.maxHeight ? { maxHeight: `${this.maxHeight}px` } : undefined}
@@ -148,8 +150,9 @@ export class WbFormField {
           />
         ) : (
           <input
+            id={this.name}
             type={inputType}
-            ref={(el) => (this.inputEl = el)}
+            ref={el => (this.inputEl = el)}
             min={r?.min !== undefined ? r.min : undefined}
             max={r?.max !== undefined ? r.max : undefined}
             step={r?.step !== undefined ? r.step : undefined}

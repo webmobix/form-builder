@@ -18,8 +18,8 @@
   color: #e53e3e;
 }
 
-.wb-field input[type='text'],
-.wb-field input[type='date'] {
+.wb-field input[type="text"],
+.wb-field input[type="date"] {
   width: 100%;
   padding: 8px 10px;
   font-size: 15px;

@@ -1,3 +1,4 @@
+// biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
 import { h } from '@stencil/core';
 import { render } from '@stencil/vitest';
 

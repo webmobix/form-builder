@@ -1,6 +1,7 @@
+// biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
 import { h } from '@stencil/core';
 import { render } from '@stencil/vitest';
-import type { FieldMeta } from '@webmobix/form-core';
+import type { FieldMeta } from '../../core';
 
 // Importing the source file triggers the on-the-fly compile + customElements.define()
 import './wb-canvas';
@@ -85,9 +86,7 @@ describe('wb-canvas addFieldAfter', () => {
     expect(canvas.fields[1].type).toBe('select');
     expect(canvas.fields[1].label).toBe('Dropdown');
     expect(wbChangeSpy).toHaveBeenCalled();
-    expect(wbFieldSelectedSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ detail: expect.objectContaining({ type: 'select', label: 'Dropdown' }) })
-    );
+    expect(wbFieldSelectedSpy).toHaveBeenCalledWith(expect.objectContaining({ detail: expect.objectContaining({ type: 'select', label: 'Dropdown' }) }));
   });
 
   it('appends to the end when no component is selected', async () => {
@@ -142,9 +141,7 @@ describe('wb-canvas selection and update API', () => {
     expect(canvas.fields[0].label).toBe('Updated');
     expect(canvas.fields[0].id).toBe(targetId);
     expect(wbChangeSpy).toHaveBeenCalled();
-    expect(wbFieldUpdatedSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ detail: { id: targetId, patch: { label: 'Updated' } } })
-    );
+    expect(wbFieldUpdatedSpy).toHaveBeenCalledWith(expect.objectContaining({ detail: { id: targetId, patch: { label: 'Updated' } } }));
   });
 
   it('updateField preserves position and id', async () => {

@@ -1,3 +1,4 @@
+// biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
 import { h } from '@stencil/core';
 import { render } from '@stencil/vitest';
 
@@ -43,9 +44,7 @@ describe('wb-form-renderer', () => {
   it('forwards subtype and restrictions to wb-form-field', async () => {
     const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
     const renderer = instance as any;
-    await renderer.setFields([
-      { id: 3, type: 'text', label: 'Age', subtype: 'number', restrictions: { number: { min: 0, max: 120 } } },
-    ]);
+    await renderer.setFields([{ id: 3, type: 'text', label: 'Age', subtype: 'number', restrictions: { number: { min: 0, max: 120 } } }]);
     await waitForChanges();
     const field = root.shadowRoot!.querySelector('wb-form-field') as any;
     expect(field.subtype).toBe('number');
@@ -107,7 +106,7 @@ describe('wb-form-renderer', () => {
     // mock-doc's FormData(form) isn't wired to form-associated custom elements,
     // so stub it to surface the field value the way a real browser would.
     const OrigFormData = globalThis.FormData;
-    globalThis.FormData = vi.fn(function (_form: HTMLFormElement) {
+    globalThis.FormData = vi.fn((_form: HTMLFormElement) => {
       const fd = new OrigFormData();
       fd.append('field.1', 'Alice');
       return fd;
@@ -123,7 +122,7 @@ describe('wb-form-renderer', () => {
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({
         detail: { 'field.1': 'Alice' },
-      })
+      }),
     );
   });
 
@@ -138,9 +137,7 @@ describe('wb-form-renderer', () => {
   it('forwards multiline, initialLines, and maxHeight to wb-form-field', async () => {
     const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
     const renderer = instance as any;
-    await renderer.setFields([
-      { id: 7, type: 'text', subtype: 'text', label: 'Notes', multiline: true, initialLines: 4, maxHeight: 200 },
-    ]);
+    await renderer.setFields([{ id: 7, type: 'text', subtype: 'text', label: 'Notes', multiline: true, initialLines: 4, maxHeight: 200 }]);
     await waitForChanges();
     const field = root.shadowRoot!.querySelector('wb-form-field') as any;
     expect(field.multiline).toBe(true);

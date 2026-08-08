@@ -5,9 +5,9 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { FieldMeta, FieldSubtype, FieldType, Restrictions } from "@webmobix/form-core";
+import { FieldMeta, FieldSubtype, FieldType, Restrictions } from "./core";
 import { FieldTypeDef } from "./components/wb-palette/wb-palette";
-export { FieldMeta, FieldSubtype, FieldType, Restrictions } from "@webmobix/form-core";
+export { FieldMeta, FieldSubtype, FieldType, Restrictions } from "./core";
 export { FieldTypeDef } from "./components/wb-palette/wb-palette";
 export namespace Components {
     /**

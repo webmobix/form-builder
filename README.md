@@ -4,13 +4,11 @@ npm workspaces monorepo, scaffolded and verified building/testing end to end.
 
 ## Packages
 
-- **`packages/form-core`** — framework-agnostic engine. JSON Schema (validated via `ajv`)
-  + UI Schema (JSONForms-style `VerticalLayout`/`Control`/`rule` convention) + conditional
-  `SHOW`/`HIDE`/`ENABLE`/`DISABLE` rule evaluation. No DOM, no Stencil — pure TS.
-  6 unit tests passing (`npm test -w packages/form-core`).
-
-- **`packages/form-components`** — Stencil project, tag prefix `wb-`. Three real components,
-  ported from the standalone spikes:
+- **`packages/form-components`** — Stencil project, tag prefix `wb-`. The framework-agnostic
+  engine (JSON Schema + UI Schema parsing, `ajv` validation, conditional
+  `SHOW`/`HIDE`/`ENABLE`/`DISABLE` rule evaluation) lives in `src/core` as an internal module
+  (types + `FormValidator` + `evaluateRule`). It is not a separate npm package, so a single
+  publish of `@webmobix/form-components` is all that's needed. Components:
   - `wb-form-field` — single field, `formAssociated: true` + `@AttachInternals()`. Confirmed
     working: native `FormData` participation, validation-bubble anchored inside shadow DOM,
     reset/disabled callbacks.
@@ -39,8 +37,7 @@ npm workspaces monorepo, scaffolded and verified building/testing end to end.
 
 ```bash
 npm install
-npm test -w packages/form-core          # 6 passing tests
-npm run build -w packages/form-core
+npm test -w packages/form-components      # includes the ajv core engine tests
 npm run build -w packages/form-components
 npm run build -w packages/form-components-react
 npm start -w packages/form-components   # dev server, opens src/index.html

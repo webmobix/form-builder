@@ -1,3 +1,4 @@
+// biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
 import { h } from '@stencil/core';
 import { render } from '@stencil/vitest';
 
@@ -43,9 +44,7 @@ describe('wb-inspector', () => {
     input.value = 'Full Name';
     input.dispatchEvent(new Event('input', { bubbles: true }));
     await waitForChanges();
-    expect(spy).toHaveBeenCalledWith(
-      expect.objectContaining({ detail: { id: 1, patch: { label: 'Full Name' } } })
-    );
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { id: 1, patch: { label: 'Full Name' } } }));
   });
 
   it('emits wbFieldUpdated on type change clearing subtype and restrictions when leaving text', async () => {
@@ -65,7 +64,7 @@ describe('wb-inspector', () => {
           id: 1,
           patch: expect.objectContaining({ type: 'date', subtype: undefined, restrictions: undefined }),
         }),
-      })
+      }),
     );
   });
 
@@ -105,7 +104,7 @@ describe('wb-inspector', () => {
           id: 1,
           patch: expect.objectContaining({ subtype: 'number' }),
         }),
-      })
+      }),
     );
   });
 
@@ -158,7 +157,7 @@ describe('wb-inspector', () => {
             }),
           }),
         }),
-      })
+      }),
     );
   });
 
@@ -182,7 +181,7 @@ describe('wb-inspector', () => {
 describe('wb-inspector multiline controls', () => {
   const multilineCheckbox = (root: HTMLElement) => {
     const labels = Array.from(root.shadowRoot!.querySelectorAll('.field-group--checkbox'));
-    return labels.map((l) => l.textContent).find((t) => t && t.includes('Multiline'));
+    return labels.map(l => l.textContent).find(t => t?.includes('Multiline'));
   };
 
   it('shows the Multiline toggle for plain-text fields', async () => {
@@ -230,7 +229,7 @@ describe('wb-inspector multiline controls', () => {
     await inspector.setField({ id: 1, type: 'text', label: 'Notes', subtype: 'text', multiline: true, initialLines: 5, maxHeight: 200 });
     await waitForChanges();
     const checkbox = Array.from(root.shadowRoot!.querySelectorAll('.field-group--checkbox'))
-      .find((l) => l.textContent && l.textContent.includes('Multiline'))!
+      .find(l => l.textContent?.includes('Multiline'))!
       .querySelector('input[type="checkbox"]') as HTMLInputElement;
     checkbox.checked = false;
     checkbox.dispatchEvent(new Event('change', { bubbles: true }));
@@ -241,7 +240,7 @@ describe('wb-inspector multiline controls', () => {
           id: 1,
           patch: expect.objectContaining({ multiline: false, initialLines: undefined, maxHeight: undefined }),
         }),
-      })
+      }),
     );
   });
 });

@@ -1,5 +1,6 @@
-import { Component, Prop, Method, Event, EventEmitter, State, h } from '@stencil/core';
-import type { FieldMeta, FieldType, FieldSubtype } from '@webmobix/form-core';
+// biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
+import { Component, Event, type EventEmitter, h, Method, Prop, State } from '@stencil/core';
+import type { FieldMeta, FieldSubtype, FieldType } from '../../core';
 
 @Component({
   tag: 'wb-inspector',
@@ -78,30 +79,27 @@ export class WbInspector {
     const numVal = value === '' ? undefined : Number(value);
     const current = this.localField!.restrictions || {};
     const subtype = this.localField!.subtype || 'text';
+    const restriction = subtype === 'number' ? { ...current.number, [key]: numVal } : { ...current.text, [key]: numVal };
     const patch: Partial<FieldMeta> = {
       restrictions: {
         ...current,
-        [subtype]: { ...(current as any)[subtype], [key]: numVal },
+        [subtype]: restriction,
       },
     };
-    this.localField = { ...this.localField!, restrictions: patch.restrictions as any };
+    this.localField = { ...this.localField!, restrictions: patch.restrictions };
     this.emitPatch(patch);
   };
 
   private onMultilineChange = (e: Event) => {
     const multiline = (e.target as HTMLInputElement).checked;
-    const patch: Partial<FieldMeta> = multiline
-      ? { multiline: true }
-      : { multiline: false, initialLines: undefined, maxHeight: undefined };
+    const patch: Partial<FieldMeta> = multiline ? { multiline: true } : { multiline: false, initialLines: undefined, maxHeight: undefined };
     this.localField = { ...this.localField!, ...patch };
     this.emitPatch(patch);
   };
 
   private onInitialLinesInput = (e: Event) => {
     const value = (e.target as HTMLInputElement).value.trim();
-    const patch: Partial<FieldMeta> = value === '' || isNaN(Number(value))
-      ? { initialLines: 3 }
-      : { initialLines: Number(value) };
+    const patch: Partial<FieldMeta> = value === '' || Number.isNaN(Number(value)) ? { initialLines: 3 } : { initialLines: Number(value) };
     this.localField = { ...this.localField!, ...patch };
     this.emitPatch(patch);
   };
@@ -133,30 +131,22 @@ export class WbInspector {
 
         <label class="field-group">
           <span class="field-label">Label</span>
-          <input
-            class={{ 'input': true, 'input--error': !!this.labelError }}
-            type="text"
-            value={f.label}
-            onInput={this.onLabelInput}
-          />
+          <input class={{ input: true, 'input--error': !!this.labelError }} type="text" value={f.label} onInput={this.onLabelInput} />
           {this.labelError && <span class="error-text">{this.labelError}</span>}
         </label>
 
         <label class="field-group field-group--checkbox">
           <span class="field-label">Required</span>
-          <input
-            type="checkbox"
-            class="checkbox"
-            checked={!!f.required}
-            onChange={this.onRequiredChange}
-          />
+          <input type="checkbox" class="checkbox" checked={!!f.required} onChange={this.onRequiredChange} />
         </label>
 
         <label class="field-group">
           <span class="field-label">Type</span>
           <select class="select" onChange={this.onTypeChange}>
-            {(['text', 'select', 'date', 'checkbox'] as FieldType[]).map((t) => (
-              <option value={t} selected={f.type === t}>{t}</option>
+            {(['text', 'select', 'date', 'checkbox'] as FieldType[]).map(t => (
+              <option key={t} value={t} selected={f.type === t}>
+                {t}
+              </option>
             ))}
           </select>
         </label>
@@ -165,8 +155,10 @@ export class WbInspector {
           <label class="field-group">
             <span class="field-label">Subtype</span>
             <select class="select" onChange={this.onSubtypeChange}>
-              {(['text', 'number', 'email', 'tel'] as FieldSubtype[]).map((s) => (
-                <option value={s} selected={subtype === s}>{s}</option>
+              {(['text', 'number', 'email', 'tel'] as FieldSubtype[]).map(s => (
+                <option key={s} value={s} selected={subtype === s}>
+                  {s}
+                </option>
               ))}
             </select>
           </label>
@@ -176,15 +168,15 @@ export class WbInspector {
           <div class="restrictions">
             <label class="field-group">
               <span class="field-label">Min</span>
-              <input class="input" type="number" value={restrictions.number?.min ?? ''} onInput={(e) => this.onRestrictionInput('min', e)} />
+              <input class="input" type="number" value={restrictions.number?.min ?? ''} onInput={e => this.onRestrictionInput('min', e)} />
             </label>
             <label class="field-group">
               <span class="field-label">Max</span>
-              <input class="input" type="number" value={restrictions.number?.max ?? ''} onInput={(e) => this.onRestrictionInput('max', e)} />
+              <input class="input" type="number" value={restrictions.number?.max ?? ''} onInput={e => this.onRestrictionInput('max', e)} />
             </label>
             <label class="field-group">
               <span class="field-label">Step</span>
-              <input class="input" type="number" value={restrictions.number?.step ?? ''} onInput={(e) => this.onRestrictionInput('step', e)} />
+              <input class="input" type="number" value={restrictions.number?.step ?? ''} onInput={e => this.onRestrictionInput('step', e)} />
             </label>
           </div>
         )}
@@ -192,19 +184,14 @@ export class WbInspector {
         {isText && subtype === 'text' && (
           <label class="field-group">
             <span class="field-label">Max Length</span>
-            <input class="input" type="number" value={restrictions.text?.maxLength ?? ''} onInput={(e) => this.onRestrictionInput('maxLength', e)} />
+            <input class="input" type="number" value={restrictions.text?.maxLength ?? ''} onInput={e => this.onRestrictionInput('maxLength', e)} />
           </label>
         )}
 
         {isText && subtype === 'text' && (
           <label class="field-group field-group--checkbox">
             <span class="field-label">Multiline</span>
-            <input
-              type="checkbox"
-              class="checkbox"
-              checked={!!f.multiline}
-              onChange={this.onMultilineChange}
-            />
+            <input type="checkbox" class="checkbox" checked={!!f.multiline} onChange={this.onMultilineChange} />
           </label>
         )}
 

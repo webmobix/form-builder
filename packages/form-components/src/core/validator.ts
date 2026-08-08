@@ -1,4 +1,4 @@
-import Ajv, { ErrorObject } from 'ajv';
+import Ajv, { type ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import type { JsonSchema } from './types';
 

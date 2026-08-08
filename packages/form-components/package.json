@@ -54,7 +54,8 @@
     "generate": "stencil generate"
   },
   "dependencies": {
-    "@webmobix/form-core": "workspace:*"
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
   },
   "devDependencies": {
     "@stencil/core": "^4.27.1 || ^5.0.0-0",

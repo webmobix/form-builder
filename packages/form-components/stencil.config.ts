@@ -1,4 +1,4 @@
-import { Config } from '@stencil/core';
+import type { Config } from '@stencil/core';
 import { reactOutputTarget } from '@stencil/react-output-target';
 
 // Tag prefix for every component in this collection is "wb-" (see each
