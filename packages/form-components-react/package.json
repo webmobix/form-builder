@@ -1,6 +1,6 @@
 {
   "name": "@webmobix/form-components-react",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "description": "React wrappers for the @webmobix/form-components Stencil web components",
   "main": "dist/index.js",
