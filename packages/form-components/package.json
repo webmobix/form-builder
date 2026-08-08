@@ -1,6 +1,6 @@
 {
   "name": "@webmobix/form-components",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Form field, canvas, and palette web components (Stencil) — plain HTML / Preact via dist-custom-elements; typed React wrappers ship in @webmobix/form-components-react",
   "main": "dist/index.cjs.js",
   "module": "dist/index.js",
