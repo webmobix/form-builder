@@ -28,7 +28,7 @@ key stays stable across the reorder.
 
 ## Methods
 
-### `addField(type: FieldMeta["type"], label: string, subtype?: FieldSubtype) => Promise<void>`
+### `addField(type: FieldMeta["type"], label: string, subtype?: FieldSubtype, design?: { kind: "design"; designType: FieldMeta["designType"]; }) => Promise<void>`
 
 
 
@@ -39,6 +39,7 @@ key stays stable across the reorder.
 | `type`    | `"select" \| "text" \| "date" \| "checkbox"`                    |             |
 | `label`   | `string`                                                        |             |
 | `subtype` | `"number" \| "text" \| "email" \| "tel" \| "url" \| "password"` |             |
+| `design`  | `{ kind: "design"; designType: DesignType; }`                   |             |
 
 #### Returns
 
@@ -46,7 +47,7 @@ Type: `Promise<void>`
 
 
 
-### `addFieldAfter(type: FieldMeta["type"], label: string, subtype?: FieldSubtype) => Promise<void>`
+### `addFieldAfter(type: FieldMeta["type"], label: string, subtype?: FieldSubtype, design?: { kind: "design"; designType: FieldMeta["designType"]; }) => Promise<void>`
 
 
 
@@ -57,6 +58,7 @@ Type: `Promise<void>`
 | `type`    | `"select" \| "text" \| "date" \| "checkbox"`                    |             |
 | `label`   | `string`                                                        |             |
 | `subtype` | `"number" \| "text" \| "email" \| "tel" \| "url" \| "password"` |             |
+| `design`  | `{ kind: "design"; designType: DesignType; }`                   |             |
 
 #### Returns
 
@@ -84,7 +86,7 @@ Type: `Promise<void>`
 
 
 
-### `commitExternalInsert(type: FieldMeta["type"], label: string, subtype?: FieldSubtype) => Promise<void>`
+### `commitExternalInsert(type: FieldMeta["type"], label: string, subtype?: FieldSubtype, design?: { kind: "design"; designType: FieldMeta["designType"]; }) => Promise<void>`
 
 
 
@@ -95,6 +97,7 @@ Type: `Promise<void>`
 | `type`    | `"select" \| "text" \| "date" \| "checkbox"`                    |             |
 | `label`   | `string`                                                        |             |
 | `subtype` | `"number" \| "text" \| "email" \| "tel" \| "url" \| "password"` |             |
+| `design`  | `{ kind: "design"; designType: DesignType; }`                   |             |
 
 #### Returns
 
@@ -134,7 +137,7 @@ Type: `Promise<void>`
 
 
 
-### `setExternalHoverIndex(y: number) => Promise<void>`
+### `setExternalHoverIndex(x: number, y: number) => Promise<void>`
 
 
 
@@ -142,6 +145,7 @@ Type: `Promise<void>`
 
 | Name | Type     | Description |
 | ---- | -------- | ----------- |
+| `x`  | `number` |             |
 | `y`  | `number` |             |
 
 #### Returns
@@ -156,10 +160,10 @@ Type: `Promise<void>`
 
 #### Parameters
 
-| Name    | Type                                                                                                                                                                                         | Description |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `id`    | `number`                                                                                                                                                                                     |             |
-| `patch` | `{ id?: number; type?: FieldType; label?: string; subtype?: TextSubtype; required?: boolean; restrictions?: Restrictions; multiline?: boolean; initialLines?: number; maxHeight?: number; }` |             |
+| Name    | Type                                                                                                                                                                                                                                                                                                 | Description |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `id`    | `number`                                                                                                                                                                                                                                                                                             |             |
+| `patch` | `{ id?: number; kind?: ElementKind; type?: FieldType; label?: string; subtype?: TextSubtype; required?: boolean; restrictions?: Restrictions; multiline?: boolean; initialLines?: number; maxHeight?: number; designType?: DesignType; text?: string; columns?: number; children?: FieldMeta[][]; }` |             |
 
 #### Returns
 

@@ -44,11 +44,112 @@
 
 .body {
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.body.heading {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.row-label {
+  font-weight: 600;
+}
+
+.preview {
+  color: #777;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-container {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px dashed #cfcfca;
+  border-radius: 8px;
+  padding: 6px;
+  background: #fafaf8;
+  min-width: 0;
+  min-height: 44px;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+  justify-content: flex-start;
+}
+
+.column.drop-active {
+  background: #eef4ff;
+  border-color: #2f6fed;
+  border-style: solid;
+  box-shadow: 0 0 0 1px #2f6fed;
+}
+
+.drop-line {
+  height: 3px;
+  border-radius: 2px;
+  background: #2f6fed;
+  flex-shrink: 0;
+}
+
+.column-child {
+  background: #fff;
+  border: 1px solid #e4e4e0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.column-child:hover {
+  border-color: #b6c8ec;
+}
+
+.column-child--selected {
+  border-color: #2f6fed;
+  box-shadow: 0 0 0 1px #2f6fed;
+}
+
+.child-heading {
+  font-weight: 700;
+}
+
+.child-text {
+  color: #444;
+}
+
+.child-field {
+  color: #333;
+}
+
+.child-row {
+  color: #666;
 }
 
 .type {
   font-size: 12px;
   color: #999;
+  flex-shrink: 0;
 }
 
 .indicator {

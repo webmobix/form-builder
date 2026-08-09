@@ -223,6 +223,57 @@ describe('wb-canvas selection and update API', () => {
     expect(wbFieldUpdatedSpy).not.toHaveBeenCalled();
   });
 
+  it('updateField applies a patch to a child nested inside a row container', async () => {
+    const { root, instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      { id: 1, type: 'text', label: 'Name' },
+      { id: 2, kind: 'design', type: 'text', label: 'Row', designType: 'row', columns: 2, children: [[{ id: 3, type: 'text', label: 'ChildA' }], []] },
+    ]);
+    const wbChangeSpy = vi.fn();
+    root.addEventListener('wbChange', wbChangeSpy);
+
+    await canvas.updateField(3, { label: 'Renamed' });
+    expect(wbChangeSpy).toHaveBeenCalled();
+    const row = canvas.fields.find((f: FieldMeta) => f.designType === 'row');
+    expect(row.children[0][0].label).toBe('Renamed');
+    expect(row.children[0][0].id).toBe(3);
+  });
+
+  it('updateField applies a columns patch to a nested row container', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      {
+        id: 10,
+        kind: 'design',
+        type: 'text',
+        label: 'Outer',
+        designType: 'row',
+        columns: 1,
+        children: [
+          [
+            {
+              id: 11,
+              kind: 'design',
+              type: 'text',
+              label: 'Inner',
+              designType: 'row',
+              columns: 2,
+              children: [[{ id: 12, type: 'text', label: 'A' }], [{ id: 13, type: 'text', label: 'B' }]],
+            },
+          ],
+        ],
+      },
+    ]);
+    await canvas.updateField(11, { columns: 1 });
+    const outer = canvas.fields[0];
+    const inner = outer.children[0][0];
+    expect(inner.columns).toBe(1);
+    expect(inner.children).toHaveLength(1);
+    expect(inner.children[0].map((f: FieldMeta) => f.id)).toEqual([12, 13]);
+  });
+
   it('row click emits wbFieldSelected', async () => {
     const { root } = await render(<wb-canvas></wb-canvas>);
     const spy = vi.fn();

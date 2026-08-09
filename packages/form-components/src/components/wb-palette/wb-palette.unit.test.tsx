@@ -116,6 +116,41 @@ describe('wb-palette drag events', () => {
     ]);
   });
 
+  it('clicking the design-only entries emits wbAddField with a design-only payload', async () => {
+    const { root } = await render(<wb-palette></wb-palette>);
+    const addField = vi.fn();
+    root.addEventListener('wbAddField', addField);
+
+    const buttons = Array.from(root.shadowRoot!.querySelectorAll('button')) as HTMLButtonElement[];
+    const byLabel = (label: string) => buttons.find(b => b.textContent === label)!;
+
+    byLabel('Title/Headline').click();
+    byLabel('Paragraph').click();
+    byLabel('Row container').click();
+
+    expect(addField.mock.calls.map(c => c[0].detail)).toEqual([
+      { kind: 'design', designType: 'heading', label: 'Title/Headline' },
+      { kind: 'design', designType: 'paragraph', label: 'Paragraph' },
+      { kind: 'design', designType: 'row', label: 'Row container' },
+    ]);
+  });
+
+  it('dragging the Row container entry emits wbPaletteDragEnd with a design-only payload', async () => {
+    const { root } = await render(<wb-palette></wb-palette>);
+    const dragEnd = vi.fn();
+    root.addEventListener('wbPaletteDragEnd', dragEnd);
+
+    const buttons = Array.from(root.shadowRoot!.querySelectorAll('button')) as HTMLButtonElement[];
+    const rowBtn = buttons.find(b => b.textContent === 'Row container')!;
+    rowBtn.setPointerCapture = vi.fn();
+    rowBtn.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 100, clientY: 200 }));
+    window.dispatchEvent(createPointerEvent('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: 130, clientY: 200 }));
+    window.dispatchEvent(createPointerEvent('pointerup', { pointerType: 'mouse', pointerId: 1, clientX: 130, clientY: 200 }));
+
+    expect(dragEnd).toHaveBeenCalled();
+    expect(dragEnd.mock.calls[0][0].detail).toEqual({ kind: 'design', designType: 'row', label: 'Row container' });
+  });
+
   it('dragging the Email entry emits wbPaletteDragEnd with subtype', async () => {
     const { root } = await render(<wb-palette></wb-palette>);
     const dragEnd = vi.fn();

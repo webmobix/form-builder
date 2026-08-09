@@ -64,8 +64,12 @@ export interface Restrictions {
   text?: TextRestrictions;
 }
 
+export type ElementKind = 'data' | 'design';
+export type DesignType = 'heading' | 'paragraph' | 'row';
+
 export interface FieldMeta {
   id: number;
+  kind?: ElementKind;
   type: FieldType;
   label: string;
   subtype?: FieldSubtype;
@@ -74,4 +78,18 @@ export interface FieldMeta {
   multiline?: boolean;
   initialLines?: number;
   maxHeight?: number;
+  designType?: DesignType;
+  text?: string;
+  columns?: number;
+  children?: FieldMeta[][];
+}
+
+export const defaultColumns = 2;
+
+export function isDesignElement(f: FieldMeta): f is FieldMeta & { kind: 'design' } {
+  return f.kind === 'design';
+}
+
+export function isDataElement(f: FieldMeta): f is FieldMeta & { kind?: 'data' } {
+  return f.kind !== 'design';
 }

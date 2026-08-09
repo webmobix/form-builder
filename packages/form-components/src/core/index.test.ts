@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { evaluateRule } from './rules';
-import type { FieldMeta, FieldSubtype, FieldType, JsonSchema, NumberRestrictions, Restrictions, TextRestrictions, TextSubtype, UiRule } from './types';
+import {
+  defaultColumns,
+  type FieldMeta,
+  type FieldSubtype,
+  type FieldType,
+  isDataElement,
+  isDesignElement,
+  type JsonSchema,
+  type NumberRestrictions,
+  type Restrictions,
+  type TextRestrictions,
+  type TextSubtype,
+  type UiRule,
+} from './types';
 import { FormValidator } from './validator';
 
 describe('FieldMeta model', () => {
@@ -108,6 +121,42 @@ describe('FieldMeta model', () => {
     expect(field.multiline).toBeUndefined();
     expect(field.initialLines).toBeUndefined();
     expect(field.maxHeight).toBeUndefined();
+  });
+
+  it('defaults kind to data when absent', () => {
+    const field: FieldMeta = { id: 1, type: 'text', label: 'Name' };
+    expect(field.kind).toBeUndefined();
+    expect(isDataElement(field)).toBe(true);
+    expect(isDesignElement(field)).toBe(false);
+  });
+
+  it('FieldMeta accepts kind design with a designType', () => {
+    const field: FieldMeta = { id: 2, kind: 'design', type: 'text', label: 'Heading', designType: 'heading' };
+    expect(isDesignElement(field)).toBe(true);
+    expect(field.designType).toBe('heading');
+  });
+
+  it('FieldMeta accepts a paragraph text body', () => {
+    const field: FieldMeta = { id: 3, kind: 'design', type: 'text', label: 'Intro', designType: 'paragraph', text: 'Please fill this in.' };
+    expect(field.text).toBe('Please fill this in.');
+  });
+
+  it('FieldMeta accepts a row container with columns and children', () => {
+    const field: FieldMeta = {
+      id: 4,
+      kind: 'design',
+      type: 'text',
+      label: 'Row',
+      designType: 'row',
+      columns: 2,
+      children: [[{ id: 5, type: 'text', label: 'A' }], [{ id: 6, type: 'text', label: 'B' }]],
+    };
+    expect(field.columns).toBe(2);
+    expect(field.children).toHaveLength(2);
+  });
+
+  it('exposes a defaultColumns constant of 2', () => {
+    expect(defaultColumns).toBe(2);
   });
 });
 

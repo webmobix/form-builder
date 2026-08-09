@@ -70,17 +70,17 @@
       let lastBuilderPayload = null;
 
       palette.addEventListener('wbAddField', (e) => {
-        canvas.addFieldAfter(e.detail.type, e.detail.label, e.detail.subtype);
+        canvas.addFieldAfter(e.detail.type, e.detail.label, e.detail.subtype, e.detail.kind === 'design' ? { kind: 'design', designType: e.detail.designType } : undefined);
       });
       palette.addEventListener('wbPaletteDragStart', (e) => {
         canvas.beginExternalDrag();
       });
       palette.addEventListener('wbPaletteDragMove', (e) => {
-        canvas.setExternalHoverIndex(e.detail.clientY);
+        canvas.setExternalHoverIndex(e.detail.clientX, e.detail.clientY);
       });
       palette.addEventListener('wbPaletteDragEnd', (e) => {
         if (e.detail) {
-          canvas.commitExternalInsert(e.detail.type, e.detail.label, e.detail.subtype);
+          canvas.commitExternalInsert(e.detail.type, e.detail.label, e.detail.subtype, e.detail.kind === 'design' ? { kind: 'design', designType: e.detail.designType } : undefined);
         } else {
           canvas.cancelExternalDrag();
         }

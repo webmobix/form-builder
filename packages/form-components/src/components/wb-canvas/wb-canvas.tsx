@@ -1,8 +1,10 @@
 // biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
-import { Component, Event, type EventEmitter, Fragment, h, Method, State } from '@stencil/core';
-import type { FieldMeta, FieldSubtype } from '../../core';
+import { Component, Event, type EventEmitter, Fragment, h, Method, State, type VNode } from '@stencil/core';
+import { defaultColumns, type FieldMeta, type FieldSubtype } from '../../core';
 
 let uid = 0;
+
+type DropTarget = { kind: 'top'; index: number } | { kind: 'column'; containerId: number; colIndex: number; index: number } | null;
 
 /**
  * Reorderable field list. Ported from the standalone touch-drag spike.
@@ -25,6 +27,7 @@ export class WbCanvas {
     { id: ++uid, type: 'text', label: 'Email' },
   ];
   @State() hoverIndex: number | null = null;
+  @State() dropTarget: DropTarget = null;
   @State() draggingId: number | null = null;
   @State() externalDrag = false;
   @State() selectedId: number | null = null;
@@ -44,16 +47,32 @@ export class WbCanvas {
   }
 
   @Method()
-  async addField(type: FieldMeta['type'], label: string, subtype?: FieldSubtype) {
-    this.fields = [...this.fields, { id: ++uid, type, label, ...(subtype ? { subtype } : {}) }];
+  async addField(type: FieldMeta['type'], label: string, subtype?: FieldSubtype, design?: { kind: 'design'; designType: FieldMeta['designType'] }) {
+    const field = this.buildField(type, label, subtype, design);
+    this.fields = [...this.fields, field];
     this.wbChange.emit(this.fields);
   }
 
   @Method()
-  async addFieldAfter(type: FieldMeta['type'], label: string, subtype?: FieldSubtype) {
+  async addFieldAfter(type: FieldMeta['type'], label: string, subtype?: FieldSubtype, design?: { kind: 'design'; designType: FieldMeta['designType'] }) {
+    const field = this.buildField(type, label, subtype, design);
+    // When the selected element is a row container, append to its first column.
+    const selected = this.selectedId !== null ? this.fields.find(f => f.id === this.selectedId) : undefined;
+    if (selected && selected.kind === 'design' && selected.designType === 'row') {
+      const columns = selected.columns ?? defaultColumns;
+      const children = selected.children ? selected.children.map(col => [...col]) : Array.from({ length: columns }, () => [] as FieldMeta[]);
+      children[0].push(field);
+      const next = [...this.fields];
+      const selectedIdx = this.fields.findIndex(f => f.id === selected.id);
+      next[selectedIdx] = { ...selected, children };
+      this.fields = next;
+      this.wbChange.emit(this.fields);
+      this.selectedId = field.id;
+      this.wbFieldSelected.emit(field);
+      return;
+    }
     const idx = this.selectedId !== null ? this.fields.findIndex(f => f.id === this.selectedId) + 1 : this.fields.length;
     const insertAt = idx > 0 ? idx : this.fields.length;
-    const field = { id: ++uid, type, label, ...(subtype ? { subtype } : {}) };
     const next = [...this.fields];
     next.splice(insertAt, 0, field);
     this.fields = next;
@@ -62,21 +81,48 @@ export class WbCanvas {
     this.wbFieldSelected.emit(field);
   }
 
+  private buildField(type: FieldMeta['type'], label: string, subtype?: FieldSubtype, design?: { kind: 'design'; designType: FieldMeta['designType'] }): FieldMeta {
+    if (design) {
+      return {
+        id: ++uid,
+        kind: 'design',
+        type: 'text',
+        label,
+        designType: design.designType,
+        ...(design.designType === 'paragraph' ? { text: label } : {}),
+        ...(design.designType === 'row' ? { columns: defaultColumns, children: Array.from({ length: defaultColumns }, () => [] as FieldMeta[]) } : {}),
+      };
+    }
+    return { id: ++uid, type, label, ...(subtype ? { subtype } : {}) };
+  }
+
   @Method()
   async importState(fields: FieldMeta[]): Promise<void> {
     if (!Array.isArray(fields)) return;
+    const normalized: FieldMeta[] = [];
     for (const f of fields) {
-      if (typeof f.id !== 'number' || typeof f.type !== 'string' || typeof f.label !== 'string') {
-        return;
+      const kind = f.kind ?? 'data';
+      const hasDataShape = typeof f.id === 'number' && typeof f.label === 'string' && (typeof f.type === 'string' || kind === 'design');
+      if (!hasDataShape) return;
+      if (kind === 'design' && typeof f.designType !== 'string') return;
+      let entry: FieldMeta = { ...f, id: f.id, label: f.label };
+      if (kind === 'design' && f.designType === 'row') {
+        const columns = f.columns ?? defaultColumns;
+        entry = { ...entry, kind: 'design', designType: f.designType, columns, children: f.children ?? Array.from({ length: columns }, () => [] as FieldMeta[]) };
+      } else if (kind === 'design') {
+        entry = { ...entry, kind: 'design', designType: f.designType };
+      } else {
+        entry = { ...entry };
       }
+      normalized.push(entry);
     }
     if (this.selectedId !== null) {
       this.selectedId = null;
       this.wbFieldDeselected.emit();
     }
-    this.fields = fields;
-    if (fields.length > 0) {
-      uid = Math.max(...fields.map(f => f.id), uid);
+    this.fields = normalized;
+    if (normalized.length > 0) {
+      uid = Math.max(...normalized.map(f => f.id), uid);
     }
     this.wbChange.emit(this.fields);
   }
@@ -88,13 +134,45 @@ export class WbCanvas {
 
   @Method()
   async updateField(id: number, patch: Partial<FieldMeta>) {
-    const idx = this.fields.findIndex(f => f.id === id);
-    if (idx === -1) return;
-    const next = [...this.fields];
-    next[idx] = { ...next[idx], ...patch, id };
-    this.fields = next;
+    if (!this.applyFieldPatch(this.fields, id, patch)) return;
+    this.fields = [...this.fields];
     this.wbFieldUpdated.emit({ id, patch });
     this.wbChange.emit(this.fields);
+  }
+
+  /**
+   * Apply `patch` to the field with `id` anywhere in the tree (top level or
+   * nested inside row containers). Returns true if found and applied, false
+   * otherwise. Mutates the array structure it is given (caller re-sets state).
+   */
+  private applyFieldPatch(fields: FieldMeta[], id: number, patch: Partial<FieldMeta>): boolean {
+    const idx = fields.findIndex(f => f.id === id);
+    if (idx !== -1) {
+      const current = fields[idx];
+      let merged = { ...current, ...patch, id };
+      if (current.kind === 'design' && current.designType === 'row' && typeof patch.columns === 'number') {
+        const newColumns = Math.max(1, Math.min(4, patch.columns));
+        const currentColumns = current.columns ?? defaultColumns;
+        const children = current.children ? current.children.map(col => [...col]) : Array.from({ length: currentColumns }, () => [] as FieldMeta[]);
+        if (newColumns < currentColumns) {
+          const truncated = children.splice(newColumns);
+          children[children.length - 1] = [...(children[children.length - 1] ?? []), ...truncated.flat()];
+        } else if (newColumns > currentColumns) {
+          while (children.length < newColumns) children.push([]);
+        }
+        merged = { ...merged, columns: newColumns, children };
+      }
+      fields[idx] = merged;
+      return true;
+    }
+    for (const f of fields) {
+      if (f.children) {
+        for (const col of f.children) {
+          if (this.applyFieldPatch(col, id, patch)) return true;
+        }
+      }
+    }
+    return false;
   }
 
   @Method()
@@ -106,25 +184,96 @@ export class WbCanvas {
   }
 
   @Method()
-  async setExternalHoverIndex(y: number) {
+  async setExternalHoverIndex(x: number, y: number) {
     if (!this.externalDrag) return;
     if (!this.listEl) {
+      this.dropTarget = null;
+      return;
+    }
+    const columnTarget = this.computeColumnDropTarget(x, y);
+    if (columnTarget) {
+      this.dropTarget = columnTarget;
       this.hoverIndex = null;
       return;
     }
     const rect = this.listEl.getBoundingClientRect();
     if (y < rect.top || y > rect.bottom) {
+      this.dropTarget = null;
       this.hoverIndex = null;
       return;
     }
-    this.hoverIndex = this.getInsertionIndex(y);
+    const index = this.getInsertionIndex(y);
+    this.dropTarget = { kind: 'top', index };
+    this.hoverIndex = index;
     this.autoScrollCheck(y);
   }
 
+  private computeColumnDropTarget(x: number, y: number): Extract<DropTarget, { kind: 'column' }> | null {
+    if (!this.listEl) return null;
+    const containers = this.listEl.querySelectorAll<HTMLElement>('[data-container-id]');
+    for (let ci = 0; ci < containers.length; ci++) {
+      const container = containers.item(ci);
+      const cRect = container.getBoundingClientRect();
+      if (y < cRect.top || y > cRect.bottom) continue;
+      const containerId = Number(container.getAttribute('data-container-id'));
+      const columns = container.querySelectorAll<HTMLElement>('[data-column]');
+      for (let j = 0; j < columns.length; j++) {
+        const col = columns.item(j);
+        const colRect = col.getBoundingClientRect();
+        if (x < colRect.left || x > colRect.right) continue;
+        const childEls = col.querySelectorAll<HTMLElement>('.column-child');
+        let index = childEls.length;
+        for (let k = 0; k < childEls.length; k++) {
+          const r = childEls.item(k).getBoundingClientRect();
+          if (y < r.top + r.height / 2) {
+            index = k;
+            break;
+          }
+        }
+        return { kind: 'column', containerId, colIndex: j, index };
+      }
+    }
+    return null;
+  }
+
   @Method()
-  async commitExternalInsert(type: FieldMeta['type'], label: string, subtype?: FieldSubtype) {
+  async commitExternalInsert(type: FieldMeta['type'], label: string, subtype?: FieldSubtype, design?: { kind: 'design'; designType: FieldMeta['designType'] }) {
+    const target = this.dropTarget;
+    let field: FieldMeta;
+    if (design) {
+      field = {
+        id: ++uid,
+        kind: 'design',
+        type: 'text',
+        label,
+        designType: design.designType,
+        ...(design.designType === 'paragraph' ? { text: label } : {}),
+        ...(design.designType === 'row' ? { columns: defaultColumns, children: Array.from({ length: defaultColumns }, () => [] as FieldMeta[]) } : {}),
+      };
+    } else {
+      field = { id: ++uid, type, label, ...(subtype ? { subtype } : {}) };
+    }
+
+    if (target?.kind === 'column') {
+      const containerIdx = this.fields.findIndex(f => f.id === target.containerId);
+      if (containerIdx === -1) return;
+      const container = this.fields[containerIdx];
+      const columns = container.columns ?? defaultColumns;
+      const children = container.children ? container.children.map(col => [...col]) : Array.from({ length: columns }, () => [] as FieldMeta[]);
+      children[target.colIndex].splice(target.index, 0, field);
+      const next = [...this.fields];
+      next[containerIdx] = { ...container, children };
+      this.fields = next;
+      this.wbChange.emit(this.fields);
+      this.selectedId = field.id;
+      this.wbFieldSelected.emit(field);
+      this.externalDrag = false;
+      this.dropTarget = null;
+      this.hoverIndex = null;
+      return;
+    }
+
     const idx = this.hoverIndex !== null ? this.hoverIndex : this.fields.length;
-    const field = { id: ++uid, type, label, ...(subtype ? { subtype } : {}) };
     const next = [...this.fields];
     next.splice(idx, 0, field);
     this.fields = next;
@@ -132,6 +281,7 @@ export class WbCanvas {
     this.selectedId = field.id;
     this.wbFieldSelected.emit(field);
     this.externalDrag = false;
+    this.dropTarget = null;
     this.hoverIndex = null;
   }
 
@@ -142,6 +292,7 @@ export class WbCanvas {
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = null;
     this.hoverIndex = null;
+    this.dropTarget = null;
   }
 
   private getInsertionIndex(y: number): number {
@@ -155,6 +306,21 @@ export class WbCanvas {
   }
 
   private onRowClick = (field: FieldMeta) => {
+    this.selectedId = field.id;
+    this.wbFieldSelected.emit(field);
+  };
+
+  private onRowKeyDown = (field: FieldMeta, e: KeyboardEvent) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-child-id]')) return;
+    e.preventDefault();
+    this.selectedId = field.id;
+    this.wbFieldSelected.emit(field);
+  };
+
+  private onChildClick = (field: FieldMeta, e: MouseEvent) => {
+    e.stopPropagation();
     this.selectedId = field.id;
     this.wbFieldSelected.emit(field);
   };
@@ -225,6 +391,76 @@ export class WbCanvas {
     this.raf = requestAnimationFrame(tick);
   }
 
+  private rowTypeLabel(f: FieldMeta): string {
+    if (f.kind !== 'design') return f.type;
+    if (f.designType === 'heading') return 'Heading';
+    if (f.designType === 'paragraph') return 'Paragraph';
+    if (f.designType === 'row') return 'Row';
+    return 'Design';
+  }
+
+  private renderRowBody(f: FieldMeta) {
+    if (f.kind !== 'design') {
+      return <span class="body">{f.label}</span>;
+    }
+    if (f.designType === 'heading') {
+      return <span class="body heading">{f.label}</span>;
+    }
+    if (f.designType === 'paragraph') {
+      const preview = f.text ? f.text.split('\n')[0].trim() : '';
+      return (
+        <span class="body">
+          <span class="row-label">{f.label}</span>
+          {preview && <span class="preview">{preview}</span>}
+        </span>
+      );
+    }
+    if (f.designType === 'row') {
+      const columns = f.columns ?? defaultColumns;
+      const children = f.children ?? [];
+      const isTarget = this.dropTarget?.kind === 'column' && this.dropTarget.containerId === f.id;
+      const targetCol = isTarget ? (this.dropTarget as Extract<DropTarget, { kind: 'column' }>).colIndex : -1;
+      const targetIndex = isTarget ? (this.dropTarget as Extract<DropTarget, { kind: 'column' }>).index : -1;
+      return (
+        <span class="body">
+          <span class="row-label">{f.label}</span>
+          <span class="row-container" data-container-id={f.id}>
+            {Array.from({ length: columns }, (_, colIndex) => {
+              const stack = children[colIndex] ?? [];
+              const isColTarget = isTarget && colIndex === targetCol;
+              const items: VNode[] = [];
+              stack.forEach((child, childIdx) => {
+                if (isColTarget && childIdx === targetIndex) items.push(<span class="drop-line" />);
+                items.push(
+                  <button
+                    type="button"
+                    class={{ 'column-child': true, 'column-child--selected': this.selectedId === child.id }}
+                    key={child.id}
+                    data-child-id={child.id}
+                    onClick={e => this.onChildClick(child, e)}
+                  >
+                    {child.kind === 'design' && child.designType === 'heading' && <span class="child-heading">{child.label}</span>}
+                    {child.kind === 'design' && child.designType === 'paragraph' && <span class="child-text">{child.text ?? child.label}</span>}
+                    {child.kind === 'design' && child.designType === 'row' && <span class="child-row">Row</span>}
+                    {child.kind !== 'design' && <span class="child-field">{child.label}</span>}
+                  </button>,
+                );
+              });
+              if (isColTarget && targetIndex >= stack.length) items.push(<span class="drop-line" />);
+              return (
+                // biome-ignore lint/suspicious/noArrayIndexKey: columns are a fixed-size flex layout; column index is the stable identity
+                <span class={{ column: true, 'drop-active': isColTarget }} data-column={colIndex} key={colIndex}>
+                  {items}
+                </span>
+              );
+            })}
+          </span>
+        </span>
+      );
+    }
+    return <span class="body">{f.label}</span>;
+  }
+
   private commitDrop(id: number) {
     this.scrollDir = 0;
     if (this.raf) cancelAnimationFrame(this.raf);
@@ -250,23 +486,29 @@ export class WbCanvas {
         {this.fields.map((f, idx) => (
           // biome-ignore lint/correctness/useJsxKeyInIterable: Stencil Fragment takes no key; the keyed element is the row button below
           <Fragment>
-            {this.hoverIndex === idx && <div class="indicator" />}
-            <button
-              type="button"
-              class={{ row: true, dragging: this.draggingId === f.id, selected: this.selectedId === f.id }}
-              data-row
-              key={f.id}
-              onClick={() => this.onRowClick(f)}
-            >
-              <span class="handle" onPointerDown={e => this.startDrag(f, e)}>
-                ⠿
-              </span>
-              <span class="body">{f.label}</span>
-              <span class="type">{f.type}</span>
-            </button>
+            {this.dropTarget?.kind === 'top' && this.dropTarget.index === idx && <div class="indicator" />}
+            {
+              // biome-ignore lint/a11y/useSemanticElements: row is a grouping container that holds nested child buttons; a real <button> cannot contain buttons
+              // biome-ignore lint/a11y/useFocusableInteractive: div is made keyboard-focusable via tabindex and Enter/Space handlers
+              <div
+                role="button"
+                tabindex="0"
+                class={{ row: true, dragging: this.draggingId === f.id, selected: this.selectedId === f.id }}
+                data-row
+                key={f.id}
+                onClick={() => this.onRowClick(f)}
+                onKeyDown={e => this.onRowKeyDown(f, e)}
+              >
+                <span class="handle" onPointerDown={e => this.startDrag(f, e)}>
+                  ⠿
+                </span>
+                {this.renderRowBody(f)}
+                <span class="type">{this.rowTypeLabel(f)}</span>
+              </div>
+            }
           </Fragment>
         ))}
-        {this.hoverIndex === this.fields.length && <div class="indicator" />}
+        {this.dropTarget?.kind === 'top' && this.dropTarget.index === this.fields.length && <div class="indicator" />}
       </div>
     );
   }

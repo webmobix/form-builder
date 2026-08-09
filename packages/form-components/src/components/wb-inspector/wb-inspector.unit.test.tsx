@@ -225,3 +225,74 @@ describe('wb-inspector multiline controls', () => {
     );
   });
 });
+
+describe('wb-inspector design-only elements', () => {
+  it('heading element shows label and Element display and no data-field-only controls', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({ id: 1, kind: 'design', type: 'text', label: 'Personal', designType: 'heading' });
+    await waitForChanges();
+    const labelInput = root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(labelInput.value).toBe('Personal');
+    expect(root.shadowRoot!.querySelector('.field-display')?.textContent).toBe('Title/Headline');
+    expect(root.shadowRoot!.textContent).not.toContain('Required');
+    expect(root.shadowRoot!.querySelector('textarea')).toBeNull();
+    expect(root.shadowRoot!.querySelector('input[type="number"]')).toBeNull();
+  });
+
+  it('paragraph element shows a text textarea bound to text', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    await inspector.setField({ id: 2, kind: 'design', type: 'text', label: 'Intro', designType: 'paragraph', text: 'Hi' });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelector('.field-display')?.textContent).toBe('Paragraph');
+    const textarea = root.shadowRoot!.querySelector('textarea') as HTMLTextAreaElement;
+    expect(textarea).not.toBeNull();
+    expect(textarea.getAttribute('value')).toBe('Hi');
+    textarea.value = 'Updated prose';
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    await waitForChanges();
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { id: 2, patch: { text: 'Updated prose' } } }));
+  });
+
+  it('row container element shows a columns numeric input bound to columns', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    await inspector.setField({ id: 3, kind: 'design', type: 'text', label: 'Row', designType: 'row', columns: 2, children: [[], []] });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelector('.field-display')?.textContent).toBe('Row container');
+    const numInput = root.shadowRoot!.querySelector('input[type="number"]') as HTMLInputElement;
+    expect(numInput).not.toBeNull();
+    expect(numInput.getAttribute('min')).toBe('1');
+    expect(numInput.getAttribute('max')).toBe('4');
+    expect(numInput.value).toBe('2');
+    numInput.value = '3';
+    numInput.dispatchEvent(new Event('input', { bubbles: true }));
+    await waitForChanges();
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { id: 3, patch: { columns: 3 } } }));
+  });
+
+  it('hides Required and all data-field-only controls for every designType', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    for (const designType of ['heading', 'paragraph', 'row'] as const) {
+      await inspector.setField({
+        id: 1,
+        kind: 'design',
+        type: 'text',
+        label: 'X',
+        designType,
+        ...(designType === 'paragraph' ? { text: '' } : {}),
+        ...(designType === 'row' ? { columns: 2, children: [[], []] } : {}),
+      });
+      await waitForChanges();
+      expect(root.shadowRoot!.textContent).not.toContain('Required');
+      expect(root.shadowRoot!.textContent).not.toContain('Max Length');
+      expect(root.shadowRoot!.textContent).not.toContain('Multiline');
+    }
+  });
+});

@@ -1,11 +1,13 @@
 // biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
 import { Component, Event, type EventEmitter, h, State } from '@stencil/core';
-import type { FieldSubtype, FieldType } from '../../core';
+import type { DesignType, ElementKind, FieldSubtype, FieldType } from '../../core';
 
 export interface FieldTypeDef {
-  type: FieldType;
+  type?: FieldType;
   label: string;
   subtype?: FieldSubtype;
+  kind?: ElementKind;
+  designType?: DesignType;
 }
 
 const FIELD_TYPES: FieldTypeDef[] = [
@@ -17,6 +19,9 @@ const FIELD_TYPES: FieldTypeDef[] = [
   { type: 'select', label: 'Dropdown' },
   { type: 'date', label: 'Date' },
   { type: 'checkbox', label: 'Checkbox' },
+  { kind: 'design', designType: 'heading', label: 'Title/Headline' },
+  { kind: 'design', designType: 'paragraph', label: 'Paragraph' },
+  { kind: 'design', designType: 'row', label: 'Row container' },
 ];
 
 @Component({

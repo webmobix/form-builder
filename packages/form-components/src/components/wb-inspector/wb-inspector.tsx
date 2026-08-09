@@ -22,6 +22,19 @@ function displayName(type: FieldType, subtype?: FieldSubtype): string {
   }
 }
 
+function designDisplayName(designType?: FieldMeta['designType']): string {
+  switch (designType) {
+    case 'heading':
+      return 'Title/Headline';
+    case 'paragraph':
+      return 'Paragraph';
+    case 'row':
+      return 'Row container';
+    default:
+      return 'Design element';
+  }
+}
+
 @Component({
   tag: 'wb-inspector',
   styleUrl: 'wb-inspector.css',
@@ -100,6 +113,20 @@ export class WbInspector {
     this.emitPatch(patch);
   };
 
+  private onParagraphTextInput = (e: Event) => {
+    const value = (e.target as HTMLTextAreaElement).value;
+    this.localField = { ...this.localField!, text: value };
+    this.emitPatch({ text: value });
+  };
+
+  private onColumnsInput = (e: Event) => {
+    const value = (e.target as HTMLInputElement).value.trim();
+    const num = value === '' ? 1 : Number(value);
+    const clamped = Math.max(1, Math.min(4, Number.isNaN(num) ? 1 : num));
+    this.localField = { ...this.localField!, columns: clamped };
+    this.emitPatch({ columns: clamped });
+  };
+
   render() {
     if (!this.localField) {
       return (
@@ -110,6 +137,39 @@ export class WbInspector {
     }
 
     const f = this.localField;
+    if (f.kind === 'design') {
+      return (
+        <div class="inspector">
+          <h3 class="title">Design Element Settings</h3>
+
+          <label class="field-group">
+            <span class="field-label">Label</span>
+            <input class={{ input: true, 'input--error': !!this.labelError }} type="text" value={f.label} onInput={this.onLabelInput} />
+            {this.labelError && <span class="error-text">{this.labelError}</span>}
+          </label>
+
+          <div class="field-group">
+            <span class="field-label">Element</span>
+            <span class="field-display">{designDisplayName(f.designType)}</span>
+          </div>
+
+          {f.designType === 'paragraph' && (
+            <label class="field-group">
+              <span class="field-label">Text</span>
+              <textarea class="input" value={f.text ?? ''} onInput={this.onParagraphTextInput} />
+            </label>
+          )}
+
+          {f.designType === 'row' && (
+            <label class="field-group">
+              <span class="field-label">Columns</span>
+              <input class="input" type="number" min="1" max="4" value={f.columns ?? 2} onInput={this.onColumnsInput} />
+            </label>
+          )}
+        </div>
+      );
+    }
+
     const isText = f.type === 'text';
     const subtype = f.subtype || 'text';
     const restrictions = f.restrictions || {};

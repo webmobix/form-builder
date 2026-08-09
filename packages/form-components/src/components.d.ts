@@ -20,14 +20,14 @@ export namespace Components {
      * key stays stable across the reorder.
      */
     interface WbCanvas {
-        "addField": (type: FieldMeta["type"], label: string, subtype?: FieldSubtype) => Promise<void>;
-        "addFieldAfter": (type: FieldMeta["type"], label: string, subtype?: FieldSubtype) => Promise<void>;
+        "addField": (type: FieldMeta["type"], label: string, subtype?: FieldSubtype, design?: { kind: "design"; designType: FieldMeta["designType"]; }) => Promise<void>;
+        "addFieldAfter": (type: FieldMeta["type"], label: string, subtype?: FieldSubtype, design?: { kind: "design"; designType: FieldMeta["designType"]; }) => Promise<void>;
         "beginExternalDrag": () => Promise<void>;
         "cancelExternalDrag": () => Promise<void>;
-        "commitExternalInsert": (type: FieldMeta["type"], label: string, subtype?: FieldSubtype) => Promise<void>;
+        "commitExternalInsert": (type: FieldMeta["type"], label: string, subtype?: FieldSubtype, design?: { kind: "design"; designType: FieldMeta["designType"]; }) => Promise<void>;
         "importState": (fields: FieldMeta[]) => Promise<void>;
         "selectField": (id: number | null) => Promise<void>;
-        "setExternalHoverIndex": (y: number) => Promise<void>;
+        "setExternalHoverIndex": (x: number, y: number) => Promise<void>;
         "updateField": (id: number, patch: Partial<FieldMeta>) => Promise<void>;
     }
     /**

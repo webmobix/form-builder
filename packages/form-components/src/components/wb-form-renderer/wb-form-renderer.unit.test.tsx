@@ -182,4 +182,142 @@ describe('wb-form-renderer', () => {
     expect(field.shadowRoot!.querySelector('input')).not.toBeNull();
     expect(field.shadowRoot!.querySelector('textarea')).toBeNull();
   });
+
+  it('renders a heading element as an h2 with no form control', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([{ id: 10, kind: 'design', type: 'text', label: 'Personal details', designType: 'heading' }]);
+    await waitForChanges();
+    const h2 = root.shadowRoot!.querySelector('h2') as HTMLElement;
+    expect(h2).not.toBeNull();
+    expect(h2.textContent).toBe('Personal details');
+    expect(root.shadowRoot!.querySelectorAll('wb-form-field').length).toBe(0);
+  });
+
+  it('renders a paragraph element as a p using its text body', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([{ id: 11, kind: 'design', type: 'text', label: 'Intro', designType: 'paragraph', text: 'Please fill this in.' }]);
+    await waitForChanges();
+    const p = root.shadowRoot!.querySelector('p') as HTMLElement;
+    expect(p).not.toBeNull();
+    expect(p.textContent).toBe('Please fill this in.');
+  });
+
+  it('renders a row container as flex columns with their children', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([
+      {
+        id: 12,
+        kind: 'design',
+        type: 'text',
+        label: 'Row',
+        designType: 'row',
+        columns: 2,
+        children: [[{ id: 13, type: 'text', label: 'A' }], [{ id: 14, type: 'text', label: 'B' }]],
+      },
+    ]);
+    await waitForChanges();
+    const container = root.shadowRoot!.querySelector('.row-container') as HTMLElement;
+    expect(container).not.toBeNull();
+    const columns = container.querySelectorAll('.column');
+    expect(columns.length).toBe(2);
+    const fields = container.querySelectorAll('wb-form-field');
+    expect(fields.length).toBe(2);
+    expect((fields[0] as any).name).toBe('field.13');
+    expect((fields[1] as any).name).toBe('field.14');
+  });
+
+  it('renders a nested row container recursively', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([
+      {
+        id: 20,
+        kind: 'design',
+        type: 'text',
+        label: 'Outer',
+        designType: 'row',
+        columns: 1,
+        children: [
+          [
+            {
+              id: 15,
+              kind: 'design',
+              type: 'text',
+              label: 'Inner',
+              designType: 'row',
+              columns: 2,
+              children: [[{ id: 16, type: 'text', label: 'C' }], [{ id: 17, type: 'text', label: 'D' }]],
+            },
+          ],
+        ],
+      },
+    ]);
+    await waitForChanges();
+    const outer = root.shadowRoot!.querySelector('.row-container') as HTMLElement;
+    const nested = outer.querySelector('.column .row-container') as HTMLElement;
+    expect(nested).not.toBeNull();
+    expect(nested.querySelectorAll('.column').length).toBe(2);
+    expect(nested.querySelectorAll('wb-form-field').length).toBe(2);
+  });
+
+  it('design-only elements do not produce a name or form control', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([
+      { id: 10, kind: 'design', type: 'text', label: 'Heading', designType: 'heading' },
+      { id: 11, kind: 'design', type: 'text', label: 'Intro', designType: 'paragraph', text: 'Text' },
+      { id: 12, kind: 'design', type: 'text', label: 'Row', designType: 'row', columns: 2, children: [[{ id: 13, type: 'text', label: 'A' }], []] },
+    ]);
+    await waitForChanges();
+    const fields = root.shadowRoot!.querySelectorAll('wb-form-field');
+    expect(fields.length).toBe(1);
+    expect((fields[0] as any).name).toBe('field.13');
+  });
+
+  it('submit payload includes data children but excludes design-only elements', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([
+      { id: 10, kind: 'design', type: 'text', label: 'Heading', designType: 'heading' },
+      {
+        id: 12,
+        kind: 'design',
+        type: 'text',
+        label: 'Row',
+        designType: 'row',
+        columns: 1,
+        children: [[{ id: 13, type: 'text', label: 'A' }]],
+      },
+    ]);
+    await waitForChanges();
+
+    const spy = vi.fn();
+    root.addEventListener('wbSubmit', spy);
+
+    const fieldEl = root.shadowRoot!.querySelector('wb-form-field') as any;
+    const input = fieldEl.shadowRoot!.querySelector('input')!;
+    input.value = 'Alice';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await waitForChanges();
+
+    const OrigFormData = globalThis.FormData;
+    // biome-ignore lint/complexity/useArrowFunction: must be a `function` so `new FormData(form)` can construct it
+    globalThis.FormData = vi.fn(function (_form: HTMLFormElement) {
+      const fd = new OrigFormData();
+      fd.append('field.13', 'Alice');
+      return fd;
+    }) as any;
+
+    const form = root.shadowRoot!.querySelector('form')!;
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await waitForChanges();
+
+    globalThis.FormData = OrigFormData;
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { 'field.13': 'Alice' } }));
+  });
 });
