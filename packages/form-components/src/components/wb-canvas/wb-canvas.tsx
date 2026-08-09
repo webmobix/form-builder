@@ -124,10 +124,13 @@ export class WbCanvas {
   @Method()
   async commitExternalInsert(type: FieldMeta['type'], label: string, subtype?: FieldSubtype) {
     const idx = this.hoverIndex !== null ? this.hoverIndex : this.fields.length;
+    const field = { id: ++uid, type, label, ...(subtype ? { subtype } : {}) };
     const next = [...this.fields];
-    next.splice(idx, 0, { id: ++uid, type, label, ...(subtype ? { subtype } : {}) });
+    next.splice(idx, 0, field);
     this.fields = next;
     this.wbChange.emit(this.fields);
+    this.selectedId = field.id;
+    this.wbFieldSelected.emit(field);
     this.externalDrag = false;
     this.hoverIndex = null;
   }

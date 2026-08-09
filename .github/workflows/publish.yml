@@ -17,6 +17,8 @@ jobs:
       contents: write
       pull-requests: write
       packages: write
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -53,3 +55,42 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-npm:
+    name: Publish to public npm
+    runs-on: ubuntu-slim
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/setup@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish to npmjs (OIDC trusted publishing)
+        run: |
+          npm publish --workspace @webmobix/form-components \
+            --registry=https://registry.npmjs.org/ \
+            --@webmobix:registry=https://registry.npmjs.org/
+          npm publish --workspace @webmobix/form-components-react \
+            --registry=https://registry.npmjs.org/ \
+            --@webmobix:registry=https://registry.npmjs.org/

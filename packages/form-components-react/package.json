@@ -14,6 +14,11 @@
       }
     }
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webmobix/form-builder.git",
+    "directory": "packages/form-components-react"
+  },
   "files": [
     "dist/"
   ],

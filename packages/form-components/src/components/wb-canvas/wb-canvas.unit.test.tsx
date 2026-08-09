@@ -48,6 +48,27 @@ describe('wb-canvas external drag API', () => {
     expect(canvas.hoverIndex).toBeNull();
   });
 
+  it('commitExternalInsert sets selectedId to the newly inserted field', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    canvas.externalDrag = true;
+    canvas.hoverIndex = 1;
+    await canvas.commitExternalInsert('select', 'Dropdown');
+    const inserted = canvas.fields[1];
+    expect(canvas.selectedId).toBe(inserted.id);
+  });
+
+  it('commitExternalInsert emits wbFieldSelected with the newly inserted field', async () => {
+    const { root, instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbFieldSelected', spy);
+    canvas.externalDrag = true;
+    canvas.hoverIndex = 1;
+    await canvas.commitExternalInsert('select', 'Dropdown');
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: expect.objectContaining({ type: 'select', label: 'Dropdown' }) }));
+  });
+
   it('commitExternalInsert appends when hoverIndex is null', async () => {
     const { instance } = await render(<wb-canvas></wb-canvas>);
     const canvas = instance as any;
