@@ -1,5 +1,15 @@
 # @webmobix/form-components
 
+## 0.2.0
+
+### Minor Changes
+
+- 32d9281: add design components for title, text, rows
+
+### Patch Changes
+
+- e10f18e: Select an element after drag and drop
+
 ## 0.1.1
 
 ### Patch Changes
