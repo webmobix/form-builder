@@ -1,5 +1,13 @@
 # @webmobix/form-components-react
 
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies [32d9281]
+- Updated dependencies [e10f18e]
+  - @webmobix/form-components@0.2.0
+
 ## 0.0.3
 
 ### Patch Changes
