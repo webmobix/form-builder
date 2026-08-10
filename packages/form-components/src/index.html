@@ -21,6 +21,53 @@
     <h1>form-components dev harness</h1>
     <p>Manual smoke test: click a palette item to add a field (inserts after the selected component, or appends when none is selected), drag the grip handle to reorder, select a row to edit in the inspector, submit the form.</p>
 
+    <!--
+      How the API is used and how it all wires together
+      =================================================
+
+      Four Stencil web components (<wb-palette>, <wb-canvas>, <wb-inspector>,
+      <wb-form-renderer>) are composed here with no framework — plain DOM events
+      and public @Method()s form the API between them. The pattern in every case
+      is: a component EMITS a CustomEvent, and this page's wiring script decides
+      who reacts by calling a @Method() on another component.
+
+      The state owner is <wb-canvas>. It holds the single source of truth for the
+      builder payload: an ordered array of FieldMeta (data fields + design rows).
+      Nothing mutates that array except the canvas; every other component is either
+      a producer of intents (palette) or a consumer/editor of the canvas state
+      (inspector, renderer).
+
+      Event flow, roughly:
+
+        palette → canvas   wbAddField / wbPaletteDrag*  (add / drag-drop intents)
+        canvas  → page     wbChange                     (state changed — payload)
+        canvas  → page     wbFieldSelected/Deselected   (selection changed)
+        canvas  → page     wbFieldUpdated               (a field patch applied)
+        inspector → canvas wbFieldUpdated               (edit patch to apply)
+        renderer → page    wbSubmit                     (submitted form data)
+
+      The page script is the "orchestrator": it subscribes to every component's
+      events and forwards them to the right @Method() on the target component.
+      The <wb-form-renderer> is kept in sync by pushing the latest canvas payload
+      into it via setFields() on every wbChange — so the rendered form always
+      mirrors the canvas.
+
+      Read the inline comments in the <script> below for each specific hop.
+    -->
+
+    <div class="section">
+      <div class="section-title">How it wires together</div>
+      <ol style="line-height:1.6;font-size:13px;">
+        <li><strong>Add from palette:</strong> clicking a palette item emits <code>wbAddField</code>; the script calls <code>canvas.addFieldAfter(type, label, subtype, design)</code>. Dragging emits <code>wbPaletteDragStart/Move/End</code>, which the script forwards to <code>canvas.beginExternalDrag()</code>, <code>setExternalHoverIndex(x, y)</code>, then <code>commitExternalInsert(...)</code> (or <code>cancelExternalDrag()</code>).</li>
+        <li><strong>State broadcast:</strong> the canvas emits <code>wbChange</code> with the full <code>FieldMeta[]</code>; the script stores it (<code>lastBuilderPayload</code>), shows it, and pushes it into the renderer via <code>renderer.setFields(payload)</code>.</li>
+        <li><strong>Select &amp; edit:</strong> selecting a row emits <code>wbFieldSelected</code>; the script records the id and calls <code>inspector.setField(field)</code>. Clearing the selection emits <code>wbFieldDeselected</code> → <code>inspector.setField(null)</code>.</li>
+        <li><strong>Apply edits:</strong> the inspector emits <code>wbFieldUpdated</code> with <code>{ id, patch }</code>; the script calls <code>canvas.updateField(id, patch)</code>, which applies it (even nested in a row) and re-emits <code>wbChange</code>.</li>
+        <li><strong>Submit:</strong> the renderer emits <code>wbSubmit</code> with the form data as <code>Record&lt;string, string&gt;</code>, displayed in the payload panel.</li>
+        <li><strong>Import / export:</strong> <code>dump-builder</code> shows the stored payload; <code>export-json</code> downloads it; <code>load-into-canvas</code> parses the textarea/file and calls <code>canvas.importState(parsed)</code>, which replaces the canvas state and re-emits <code>wbChange</code>.</li>
+      </ol>
+    </div>
+
+
     <div class="layout">
       <wb-palette></wb-palette>
       <wb-canvas id="canvas"></wb-canvas>
@@ -69,9 +116,17 @@
       let selectedId = null;
       let lastBuilderPayload = null;
 
+      // ---- palette → canvas: add field (tap) ----
+      // On tap, emit wbAddField with a FieldTypeDef. We translate it into an
+      // addFieldAfter(...) call on the canvas. designType is passed through only
+      // for design elements; the canvas wraps it as { kind: 'design', designType }.
       palette.addEventListener('wbAddField', (e) => {
         canvas.addFieldAfter(e.detail.type, e.detail.label, e.detail.subtype, e.detail.kind === 'design' ? { kind: 'design', designType: e.detail.designType } : undefined);
       });
+      // ---- palette → canvas: drag-and-drop across the shadow boundary ----
+      // Fine-pointer drags emit three events that map 1:1 to the canvas's
+      // external-drag @Method()s: begin on start, reposition the drop target on
+      // move, then commit (or cancel) on end.
       palette.addEventListener('wbPaletteDragStart', (e) => {
         canvas.beginExternalDrag();
       });
@@ -85,11 +140,21 @@
           canvas.cancelExternalDrag();
         }
       });
+
+      // ---- canvas → page + renderer: state changed ----
+      // wbChange carries the whole FieldMeta[]. We cache it for export, display it,
+      // and keep the <wb-form-renderer> in lockstep by pushing the same payload
+      // through setFields(). This is the single read of "the current form".
       canvas.addEventListener('wbChange', (e) => {
         lastBuilderPayload = e.detail;
         out.textContent = JSON.stringify(e.detail, null, 2);
         renderer.setFields(e.detail);
       });
+
+      // ---- canvas → page → inspector: selection ----
+      // Selecting a row emits wbFieldSelected with the FieldMeta; we record the id
+      // (used by addFieldAfter's "insert after selection") and hand the field to
+      // the inspector via setField(). Deselecting clears both.
       canvas.addEventListener('wbFieldSelected', (e) => {
         selectedId = e.detail.id;
         selected.textContent = String(selectedId);
@@ -100,15 +165,31 @@
         selected.textContent = '—';
         inspector.setField(null);
       });
+
+      // ---- canvas → page: field patch applied ----
+      // The canvas applies a patch (nested fields included) and re-emits it here
+      // for transparency; the source of truth already lives in the canvas.
       canvas.addEventListener('wbFieldUpdated', (e) => {
         out.textContent = JSON.stringify(e.detail, null, 2);
       });
+
+      // ---- inspector → canvas: apply an edit ----
+      // The inspector emits { id, patch } for each edited setting (label,
+      // required, restrictions, multiline, paragraph text, row columns). We
+      // forward it to canvas.updateField(id, patch), which applies it and
+      // re-emits wbChange — closing the loop back to the renderer.
       inspector.addEventListener('wbFieldUpdated', (e) => {
         canvas.updateField(e.detail.id, e.detail.patch);
       });
+
+      // ---- renderer → page: form submitted ----
+      // wbSubmit carries the serialized form as Record<string, string> keyed by
+      // each wb-form-field's name (the JSON Pointer path).
       renderer.addEventListener('wbSubmit', (e) => {
         out.textContent = JSON.stringify(e.detail, null, 2);
       });
+
+      // ---- page: builder payload display / export ----
       dumpBtn.addEventListener('click', () => {
         out.textContent = JSON.stringify(lastBuilderPayload, null, 2);
       });
@@ -121,6 +202,11 @@
         a.click();
         URL.revokeObjectURL(url);
       });
+
+      // ---- page → canvas: load persisted state ----
+      // Reads JSON from the file input (or the textarea), parses it, and hands it
+      // to canvas.importState(parsed), which normalizes the FieldMeta[] and
+      // re-emits wbChange so the renderer updates too.
       loadBtn.addEventListener('click', async () => {
         let raw;
         try {

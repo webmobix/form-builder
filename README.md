@@ -33,6 +33,221 @@ npm workspaces monorepo, scaffolded and verified building/testing end to end.
   `src/components/components.ts` is produced by the Stencil build and gitignored.
   Builds clean via `npm run build -w packages/form-components-react` (ESM + `.d.ts`).
 
+## API
+
+### Core engine (`@webmobix/form-components/src/core`)
+
+The framework-agnostic engine is imported from the public entry
+`packages/form-components/src/core/index.ts`, which re-exports everything below.
+
+#### Types
+
+| Type | Shape | Notes |
+| --- | --- | --- |
+| `JsonSchema` | `{ type?, title?, properties?, required?, enum? }` + any JSON Schema keyword | Minimal surface form-core reads directly; `ajv` handles all other keywords. |
+| `UiEffect` | `'SHOW' \| 'HIDE' \| 'ENABLE' \| 'DISABLE'` | Conditional rule effect. |
+| `UiRule` | `{ effect, condition: { scope, schema } }` | `scope` is a JSON Pointer into the data (e.g. `/personal/country`); `schema` is the condition to match. |
+| `UiControl` | `{ type: 'Control', scope, label?, rule? }` | Renders the schema node at `scope` (e.g. `/personal/email`). |
+| `UiLayout` | `{ type: 'VerticalLayout' \| 'HorizontalLayout', elements, rule? }` | Nestable layout container. |
+| `FormDefinition` | `{ dataSchema: JsonSchema, uiSchema: UiSchemaElement }` | The JSON Schema + UI Schema pair that drives rendering. |
+| `FieldMeta` | see below | Builder/canvas field descriptor. |
+| `FieldType` | `'text' \| 'select' \| 'date' \| 'checkbox'` | |
+| `FieldSubtype` / `TextSubtype` | `'text' \| 'number' \| 'email' \| 'tel' \| 'url' \| 'password'` | |
+| `Restrictions` | `{ number?: { min?, max?, step? }, text?: { maxLength? } }` | Validation bounds applied by `wb-form-field`. |
+| `ElementKind` | `'data' \| 'design'` | |
+| `DesignType` | `'heading' \| 'paragraph' \| 'row'` | Non-input design elements. |
+
+`FieldMeta` is the descriptor used across the builder components (canvas, palette,
+inspector, renderer):
+
+```ts
+interface FieldMeta {
+  id: number;
+  kind?: ElementKind;          // 'data' (default) | 'design'
+  type: FieldType;             // unused when kind === 'design'
+  label: string;
+  subtype?: FieldSubtype;
+  required?: boolean;
+  restrictions?: Restrictions;
+  multiline?: boolean;
+  initialLines?: number;       // textarea rows
+  maxHeight?: number;          // textarea max height (px)
+  designType?: DesignType;     // set when kind === 'design'
+  text?: string;               // paragraph body
+  columns?: number;            // row column count (default 2, clamped 1-4)
+  children?: FieldMeta[][];    // row children, one array per column
+}
+```
+
+Helpers `isDesignElement(f)` and `isDataElement(f)` narrow `kind`. The default column
+count is exported as `defaultColumns = 2`.
+
+#### `FormValidator`
+
+Compiles a `JsonSchema` with `ajv` (+ `ajv-formats`) and validates data objects.
+
+```ts
+class FormValidator {
+  constructor(dataSchema: JsonSchema);
+  validate(data: unknown): FieldError[];
+}
+```
+
+Returns `[]` when valid, otherwise a list of `FieldError`:
+`{ path: string, message: string }` where `path` is the JSON Pointer to the offending
+field (e.g. `/personal/email`) and missing `required` properties produce
+`"<prop> is required"`.
+
+#### `evaluateRule(rule, data): boolean`
+
+Resolves `rule.condition.scope` (a JSON Pointer) against `data`, compiles
+`rule.condition.schema` with `ajv`, and returns whether the ruled element should be
+shown/enabled:
+
+- `SHOW` / `ENABLE` — returns the condition's match result.
+- `HIDE` / `DISABLE` — returns the inverse.
+- No rule — always `true`.
+
+### Components (`@webmobix/form-components`)
+
+All custom elements live in shadow DOM and use the `wb-` tag prefix.
+
+#### `<wb-form-field>`
+
+Single form field; `formAssociated: true` so it participates natively in an ancestor
+`<form>` via `ElementInternals` (submission, reset, disable, and validation bubble).
+
+**Props**
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `name` | `string` (required) | — | JSON Pointer path used as the form-submission key (e.g. `personal.email`). |
+| `type` | `FieldType` | `'text'` | |
+| `label` | `string` (required) | — | |
+| `required` | `boolean` | `false` | Sets `valueMissing` validity. |
+| `subtype` | `FieldSubtype` | — | Used when `type === 'text'`. |
+| `restrictions` | `Restrictions` | — | Number min/max/step and text maxLength. |
+| `multiline` | `boolean` | `false` | Renders a `<textarea>` for `type === 'text'`. |
+| `initialLines` | `number` | — | Textarea `rows` (default 3). |
+| `maxHeight` | `number` | — | Textarea `max-height` in px. |
+
+For checkboxes the submitted value is `'on'` when checked, `''` otherwise. Number
+subtypes apply `rangeUnderflow` / `rangeOverflow` validity from `restrictions.number`.
+
+#### `<wb-canvas>`
+
+Reorderable field list with pointer-based drag (keyed by `FieldMeta.id` to preserve
+the dragged DOM node), nested row containers, auto-scroll, and selection.
+
+**Events**
+
+| Event | `detail` | Fired when |
+| --- | --- | --- |
+| `wbChange` | `FieldMeta[]` | Fields added, reordered, or updated; also on load. |
+| `wbFieldSelected` | `FieldMeta` | A field/row is selected. |
+| `wbFieldDeselected` | `void` | Empty area clears the selection. |
+| `wbFieldUpdated` | `{ id: number, patch: Partial<FieldMeta> }` | A field patch is applied (incl. nested). |
+
+**Methods** (all `async`)
+
+| Method | Args | Behavior |
+| --- | --- | --- |
+| `addField` | `type, label, subtype?, design?` | Appends a field. |
+| `addFieldAfter` | `type, label, subtype?, design?` | Inserts after the selected field; appends to a selected row's first column if the selection is a row. |
+| `importState` | `fields: FieldMeta[]` | Normalizes and replaces the field list; emits `wbChange`. |
+| `selectField` | `id: number \| null` | Sets the current selection. |
+| `updateField` | `id, patch` | Applies a patch anywhere in the tree; emits `wbFieldUpdated` + `wbChange`. |
+| `beginExternalDrag` | — | Starts cross-shadow drag mode (for palette drops). |
+| `setExternalHoverIndex` | `x, y` | Positions the external drop target from coordinates. |
+| `commitExternalInsert` | `type, label, subtype?, design?` | Commits an external drop at the current target. |
+| `cancelExternalDrag` | — | Ends external drag mode and cleans up. |
+
+`design` is `{ kind: 'design', designType: 'heading' \| 'paragraph' \| 'row' }`.
+
+#### `<wb-palette>`
+
+Tap-to-add palette (mobile-proven pattern); fine-pointer devices can also drag from it
+across the shadow boundary. Emits a `FieldTypeDef` per entry:
+`{ type?, label, subtype?, kind?, designType? }`.
+
+**Events**
+
+| Event | `detail` | Fired when |
+| --- | --- | --- |
+| `wbAddField` | `FieldTypeDef` | An entry is clicked/added. |
+| `wbPaletteDragStart` | `FieldTypeDef` | A drag begins. |
+| `wbPaletteDragMove` | `{ clientX, clientY }` | The drag moves. |
+| `wbPaletteDragEnd` | `FieldTypeDef \| null` | A drag ends (`null` if it was just a click, not a move). |
+
+Built-in `FieldTypeDef` entries: text, email, URL, number, password, dropdown, date,
+checkbox, plus heading / paragraph / row design elements.
+
+#### `<wb-inspector>`
+
+Edits the selected field's settings and emits patches for the canvas to apply.
+
+**Props**
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `field` | `FieldMeta \| null` (mutable) | `null` |
+
+**Events**
+
+| Event | `detail` |
+| --- | --- |
+| `wbFieldUpdated` | `{ id: number, patch: Partial<FieldMeta> }` |
+
+**Methods**
+
+| Method | Args |
+| --- | --- |
+| `setField` | `field: FieldMeta \| null` |
+
+Emits patches for label (with empty-label validation), required, number min/max/step,
+text maxLength, multiline + initialLines + maxHeight, paragraph text, and row columns.
+
+#### `<wb-form-renderer>`
+
+Renders a form from `FieldMeta[]` (data fields + design elements) and submits via
+`FormData`.
+
+**Props**
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `fields` | `FieldMeta[]` (mutable) | `[]` |
+
+**Events**
+
+| Event | `detail` |
+| --- | --- |
+| `wbSubmit` | `Record<string, string>` (field name → value) |
+
+**Methods**
+
+| Method | Args |
+| --- | --- |
+| `setFields` | `fields: FieldMeta[]` |
+
+### React wrappers (`@webmobix/form-components-react`)
+
+Re-exports the Stencil-generated wrappers as typed PascalCase React components:
+`WbCanvas`, `WbFormField`, `WbFormRenderer`, `WbInspector`, `WbPalette`. Props map to
+the web-component attributes; Stencil `wb-` events surface as idiomatic `onWb*` React
+handlers carrying the `CustomEvent` (use `e.detail`).
+
+```tsx
+import { WbCanvas, WbFormRenderer } from '@webmobix/form-components-react';
+
+<WbCanvas
+  fields={myFields}
+  onWbChange={(e) => console.log(e.detail)}
+  ref={(el) => el?.addField('text', 'Nickname')}
+/>
+<WbFormRenderer fields={myFields} onWbSubmit={(e) => console.log(e.detail)} />
+```
+
 ## Running locally
 
 ```bash
