@@ -52,6 +52,10 @@ export namespace Components {
          */
         "name": string;
         /**
+          * Muted helper text shown while a richtext editor is empty (richtext only).
+         */
+        "placeholder"?: string;
+        /**
           * @default false
          */
         "required": boolean;
@@ -250,6 +254,10 @@ declare namespace LocalJSX {
          */
         "name": string;
         /**
+          * Muted helper text shown while a richtext editor is empty (richtext only).
+         */
+        "placeholder"?: string;
+        /**
           * @default false
          */
         "required"?: boolean;
@@ -290,6 +298,7 @@ declare namespace LocalJSX {
         "multiline": boolean;
         "initialLines": number;
         "maxHeight": number;
+        "placeholder": string;
     }
 
     interface IntrinsicElements {

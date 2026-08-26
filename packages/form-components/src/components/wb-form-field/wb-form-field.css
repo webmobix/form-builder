@@ -50,3 +50,105 @@
   align-items: center;
   gap: 8px;
 }
+
+/* ---- rich text -------------------------------------------------------- */
+
+.wb-richtext__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wb-richtext-toolbar-gap, 4px);
+  margin-bottom: 4px;
+}
+
+/* display:flex would override the UA [hidden] rule otherwise */
+.wb-richtext__toolbar[hidden],
+.wb-richtext__linkbar[hidden] {
+  display: none;
+}
+
+.wb-richtext__btn {
+  border: var(--wb-richtext-btn-border, 1px solid #ddd);
+  background: var(--wb-richtext-btn-background, #fff);
+  color: inherit;
+  border-radius: var(--wb-richtext-btn-border-radius, 6px);
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.wb-richtext__btn:hover {
+  border-color: #bbb;
+}
+
+.wb-richtext__btn.is-active {
+  background: var(--wb-richtext-btn-active-background, #eef3ff);
+  border-color: var(--wb-richtext-accent, #2f6fed);
+  color: var(--wb-richtext-accent, #2f6fed);
+}
+
+.wb-richtext__linkbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.wb-richtext__linkbar input {
+  flex: 1;
+  min-width: 160px;
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.wb-richtext__error {
+  color: #e53e3e;
+  font-size: 12px;
+}
+
+.wb-richtext__editor {
+  width: 100%;
+  border: var(--wb-richtext-border, 1px solid #ddd);
+  border-radius: var(--wb-richtext-border-radius, 8px);
+  padding: 8px 10px;
+  min-height: 96px;
+  box-sizing: border-box;
+  background: var(--wb-richtext-background, #fff);
+}
+
+.wb-richtext__editor .tiptap {
+  outline: none;
+  font-size: var(--wb-richtext-font-size, 15px);
+  line-height: 1.5;
+  /* keep block spacing tight inside the field */
+}
+
+.wb-richtext__editor .tiptap p {
+  margin: 0 0 0.4em;
+}
+
+/* Placeholder (Tiptap Placeholder extension classes) */
+.wb-richtext__editor .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--wb-richtext-placeholder-color, #9a9a94);
+}
+
+/* Minimal formatting previews so the editor reads like its output */
+.wb-richtext__editor .tiptap h2,
+.wb-richtext__editor .tiptap h3 {
+  margin: 0.4em 0;
+}
+
+.wb-richtext__editor .tiptap blockquote {
+  border-left: 3px solid #ddd;
+  margin: 0.4em 0;
+  padding-left: 10px;
+  color: #55554f;
+}

@@ -19,6 +19,7 @@ const FIELD_TYPES: FieldTypeDef[] = [
   { type: 'select', label: 'Dropdown' },
   { type: 'date', label: 'Date' },
   { type: 'checkbox', label: 'Checkbox' },
+  { type: 'richtext', label: 'Rich text' },
   { kind: 'design', designType: 'heading', label: 'Title/Headline' },
   { kind: 'design', designType: 'paragraph', label: 'Paragraph' },
   { kind: 'design', designType: 'row', label: 'Row container' },

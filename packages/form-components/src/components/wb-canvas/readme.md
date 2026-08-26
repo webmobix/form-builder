@@ -36,7 +36,7 @@ key stays stable across the reorder.
 
 | Name      | Type                                                            | Description |
 | --------- | --------------------------------------------------------------- | ----------- |
-| `type`    | `"select" \| "text" \| "date" \| "checkbox"`                    |             |
+| `type`    | `"select" \| "text" \| "date" \| "checkbox" \| "richtext"`      |             |
 | `label`   | `string`                                                        |             |
 | `subtype` | `"number" \| "text" \| "email" \| "tel" \| "url" \| "password"` |             |
 | `design`  | `{ kind: "design"; designType: DesignType; }`                   |             |
@@ -55,7 +55,7 @@ Type: `Promise<void>`
 
 | Name      | Type                                                            | Description |
 | --------- | --------------------------------------------------------------- | ----------- |
-| `type`    | `"select" \| "text" \| "date" \| "checkbox"`                    |             |
+| `type`    | `"select" \| "text" \| "date" \| "checkbox" \| "richtext"`      |             |
 | `label`   | `string`                                                        |             |
 | `subtype` | `"number" \| "text" \| "email" \| "tel" \| "url" \| "password"` |             |
 | `design`  | `{ kind: "design"; designType: DesignType; }`                   |             |
@@ -94,7 +94,7 @@ Type: `Promise<void>`
 
 | Name      | Type                                                            | Description |
 | --------- | --------------------------------------------------------------- | ----------- |
-| `type`    | `"select" \| "text" \| "date" \| "checkbox"`                    |             |
+| `type`    | `"select" \| "text" \| "date" \| "checkbox" \| "richtext"`      |             |
 | `label`   | `string`                                                        |             |
 | `subtype` | `"number" \| "text" \| "email" \| "tel" \| "url" \| "password"` |             |
 | `design`  | `{ kind: "design"; designType: DesignType; }`                   |             |
@@ -160,10 +160,10 @@ Type: `Promise<void>`
 
 #### Parameters
 
-| Name    | Type                                                                                                                                                                                                                                                                                                 | Description |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `id`    | `number`                                                                                                                                                                                                                                                                                             |             |
-| `patch` | `{ id?: number; kind?: ElementKind; type?: FieldType; label?: string; subtype?: TextSubtype; required?: boolean; restrictions?: Restrictions; multiline?: boolean; initialLines?: number; maxHeight?: number; designType?: DesignType; text?: string; columns?: number; children?: FieldMeta[][]; }` |             |
+| Name    | Type                                                                                                                                                                                                                                                                                                                       | Description |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `id`    | `number`                                                                                                                                                                                                                                                                                                                   |             |
+| `patch` | `{ id?: number; kind?: ElementKind; type?: FieldType; label?: string; subtype?: TextSubtype; required?: boolean; restrictions?: Restrictions; multiline?: boolean; initialLines?: number; maxHeight?: number; placeholder?: string; designType?: DesignType; text?: string; columns?: number; children?: FieldMeta[][]; }` |             |
 
 #### Returns
 

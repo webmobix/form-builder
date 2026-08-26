@@ -29,6 +29,11 @@ export default defineVitestConfig({
             headless: true,
             instances: [{ browser: 'chromium' }],
           },
+          optimizeDeps: {
+            // Pre-bundle these so vite doesn't reload the iframe mid-run
+            // (which wipes custom elements and flaky-fails mounting tests).
+            include: ['@stencil/core', '@tiptap/core', '@tiptap/extension-placeholder', '@tiptap/starter-kit', '@tiptap/pm', 'dompurify'],
+          },
         },
       },
     ],

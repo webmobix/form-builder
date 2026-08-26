@@ -6,6 +6,7 @@ function displayName(type: FieldType, subtype?: FieldSubtype): string {
   if (type === 'select') return 'Dropdown';
   if (type === 'date') return 'Date';
   if (type === 'checkbox') return 'Checkbox';
+  if (type === 'richtext') return 'Rich text';
   switch (subtype) {
     case 'email':
       return 'Email';
@@ -113,6 +114,13 @@ export class WbInspector {
     this.emitPatch(patch);
   };
 
+  private onPlaceholderInput = (e: Event) => {
+    const value = (e.target as HTMLInputElement).value;
+    const patch: Partial<FieldMeta> = value === '' ? { placeholder: undefined } : { placeholder: value };
+    this.localField = { ...this.localField!, placeholder: patch.placeholder };
+    this.emitPatch(patch);
+  };
+
   private onParagraphTextInput = (e: Event) => {
     const value = (e.target as HTMLTextAreaElement).value;
     this.localField = { ...this.localField!, text: value };
@@ -171,6 +179,7 @@ export class WbInspector {
     }
 
     const isText = f.type === 'text';
+    const isRichtext = f.type === 'richtext';
     const subtype = f.subtype || 'text';
     const restrictions = f.restrictions || {};
 
@@ -194,6 +203,13 @@ export class WbInspector {
           <span class="field-display">{displayName(f.type, f.subtype)}</span>
         </div>
 
+        {isRichtext && (
+          <label class="field-group">
+            <span class="field-label">Placeholder</span>
+            <input class="input" type="text" value={f.placeholder ?? ''} onInput={this.onPlaceholderInput} />
+          </label>
+        )}
+
         {isText && subtype === 'number' && (
           <div class="restrictions">
             <label class="field-group">
@@ -211,7 +227,7 @@ export class WbInspector {
           </div>
         )}
 
-        {isText && subtype !== 'number' && (
+        {((isText && subtype !== 'number') || isRichtext) && (
           <label class="field-group">
             <span class="field-label">Max Length</span>
             <input class="input" type="number" value={restrictions.text?.maxLength ?? ''} onInput={e => this.onRestrictionInput('maxLength', e)} />

@@ -18,17 +18,18 @@ see the collision risk noted after the ElementInternals spike.
 
 ## Properties
 
-| Property             | Attribute       | Description                                                              | Type                                                            | Default     |
-| -------------------- | --------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------- | ----------- |
-| `initialLines`       | `initial-lines` |                                                                          | `number`                                                        | `undefined` |
-| `label` _(required)_ | `label`         |                                                                          | `string`                                                        | `undefined` |
-| `maxHeight`          | `max-height`    |                                                                          | `number`                                                        | `undefined` |
-| `multiline`          | `multiline`     |                                                                          | `boolean`                                                       | `false`     |
-| `name` _(required)_  | `name`          | JSON Pointer path used as the form-submission key, e.g. "personal.email" | `string`                                                        | `undefined` |
-| `required`           | `required`      |                                                                          | `boolean`                                                       | `false`     |
-| `restrictions`       | --              |                                                                          | `Restrictions`                                                  | `undefined` |
-| `subtype`            | `subtype`       |                                                                          | `"email" \| "number" \| "password" \| "tel" \| "text" \| "url"` | `undefined` |
-| `type`               | `type`          |                                                                          | `"checkbox" \| "date" \| "select" \| "text"`                    | `'text'`    |
+| Property             | Attribute       | Description                                                               | Type                                                            | Default     |
+| -------------------- | --------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------- | ----------- |
+| `initialLines`       | `initial-lines` |                                                                           | `number`                                                        | `undefined` |
+| `label` _(required)_ | `label`         |                                                                           | `string`                                                        | `undefined` |
+| `maxHeight`          | `max-height`    |                                                                           | `number`                                                        | `undefined` |
+| `multiline`          | `multiline`     |                                                                           | `boolean`                                                       | `false`     |
+| `name` _(required)_  | `name`          | JSON Pointer path used as the form-submission key, e.g. "personal.email"  | `string`                                                        | `undefined` |
+| `placeholder`        | `placeholder`   | Muted helper text shown while a richtext editor is empty (richtext only). | `string`                                                        | `undefined` |
+| `required`           | `required`      |                                                                           | `boolean`                                                       | `false`     |
+| `restrictions`       | --              |                                                                           | `Restrictions`                                                  | `undefined` |
+| `subtype`            | `subtype`       |                                                                           | `"email" \| "number" \| "password" \| "tel" \| "text" \| "url"` | `undefined` |
+| `type`               | `type`          |                                                                           | `"checkbox" \| "date" \| "richtext" \| "select" \| "text"`      | `'text'`    |
 
 
 ## Dependencies

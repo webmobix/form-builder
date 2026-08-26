@@ -43,7 +43,7 @@ export interface FormDefinition {
   uiSchema: UiSchemaElement;
 }
 
-export type FieldType = 'text' | 'select' | 'date' | 'checkbox';
+export type FieldType = 'text' | 'select' | 'date' | 'checkbox' | 'richtext';
 
 export type TextSubtype = 'text' | 'number' | 'email' | 'tel' | 'url' | 'password';
 
@@ -78,6 +78,8 @@ export interface FieldMeta {
   multiline?: boolean;
   initialLines?: number;
   maxHeight?: number;
+  /** Muted helper text shown while a richtext editor is empty (richtext-only in this change). */
+  placeholder?: string;
   designType?: DesignType;
   text?: string;
   columns?: number;

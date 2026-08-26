@@ -8,5 +8,6 @@
  * to consume components of this package as outlined in the `README.md`.
  */
 
+export { docToHtml } from './components/wb-form-field/richtext';
 export type * from './components.d.ts';
 export { format } from './utils/utils';

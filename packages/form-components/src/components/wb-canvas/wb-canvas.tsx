@@ -392,7 +392,10 @@ export class WbCanvas {
   }
 
   private rowTypeLabel(f: FieldMeta): string {
-    if (f.kind !== 'design') return f.type;
+    if (f.kind !== 'design') {
+      if (f.type === 'richtext') return 'Rich text';
+      return f.type;
+    }
     if (f.designType === 'heading') return 'Heading';
     if (f.designType === 'paragraph') return 'Paragraph';
     if (f.designType === 'row') return 'Row';

@@ -69,6 +69,7 @@ export class WbFormRenderer {
         multiline={!!entry.multiline}
         initialLines={entry.initialLines}
         maxHeight={entry.maxHeight}
+        placeholder={entry.placeholder}
       />
     );
   }

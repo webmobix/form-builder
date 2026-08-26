@@ -55,8 +55,13 @@
     "generate": "stencil generate"
   },
   "dependencies": {
+    "@tiptap/core": "^3.30.0",
+    "@tiptap/extension-placeholder": "^3.30.0",
+    "@tiptap/pm": "^3.30.0",
+    "@tiptap/starter-kit": "^3.30.0",
     "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1"
+    "ajv-formats": "^3.0.1",
+    "dompurify": "^3.2.4"
   },
   "devDependencies": {
     "@stencil/core": "^4.27.1 || ^5.0.0-0",

@@ -51,7 +51,7 @@ The framework-agnostic engine is imported from the public entry
 | `UiLayout` | `{ type: 'VerticalLayout' \| 'HorizontalLayout', elements, rule? }` | Nestable layout container. |
 | `FormDefinition` | `{ dataSchema: JsonSchema, uiSchema: UiSchemaElement }` | The JSON Schema + UI Schema pair that drives rendering. |
 | `FieldMeta` | see below | Builder/canvas field descriptor. |
-| `FieldType` | `'text' \| 'select' \| 'date' \| 'checkbox'` | |
+| `FieldType` | `'text' \| 'select' \| 'date' \| 'checkbox' \| 'richtext'` | |
 | `FieldSubtype` / `TextSubtype` | `'text' \| 'number' \| 'email' \| 'tel' \| 'url' \| 'password'` | |
 | `Restrictions` | `{ number?: { min?, max?, step? }, text?: { maxLength? } }` | Validation bounds applied by `wb-form-field`. |
 | `ElementKind` | `'data' \| 'design'` | |
@@ -72,6 +72,7 @@ interface FieldMeta {
   multiline?: boolean;
   initialLines?: number;       // textarea rows
   maxHeight?: number;          // textarea max height (px)
+  placeholder?: string;        // richtext-only: muted helper text while empty
   designType?: DesignType;     // set when kind === 'design'
   text?: string;               // paragraph body
   columns?: number;            // row column count (default 2, clamped 1-4)
@@ -130,9 +131,45 @@ Single form field; `formAssociated: true` so it participates natively in an ance
 | `multiline` | `boolean` | `false` | Renders a `<textarea>` for `type === 'text'`. |
 | `initialLines` | `number` | — | Textarea `rows` (default 3). |
 | `maxHeight` | `number` | — | Textarea `max-height` in px. |
+| `placeholder` | `string` | — | Richtext only: muted helper text shown while the editor is empty. |
 
 For checkboxes the submitted value is `'on'` when checked, `''` otherwise. Number
 subtypes apply `rangeUnderflow` / `rangeOverflow` validity from `restrictions.number`.
+
+#### Rich text fields (`type: 'richtext'`)
+
+Rendered as a Tiptap v3 editor with a fixed toolbar: bold, italic, underline,
+strikethrough, H2/H3 headings, bullet & ordered lists, blockquote, links (inline
+URL entry with protocol validation — `javascript:` etc. are refused), clear
+formatting, undo/redo. No images, tables, code blocks, or horizontal rules.
+
+**Value format** — submissions stay a flat `Record<string, string>`:
+
+- Non-empty content: `field.<id>` holds `JSON.stringify` of the Tiptap/ProseMirror
+  JSON document (lossless round-trip on re-edit).
+- Structurally empty content (only blank paragraphs): `field.<id>` is `''`.
+
+Validation reuses the native flow: `required` reports a missing value while
+empty ("`<label>` is required"); `restrictions.text.maxLength` counts **plain
+text** (markup excluded) and flags a custom error "`<label>` exceeds N
+characters" on sync/submit — typing past the limit is never blocked.
+`formDisabledCallback` hides the toolbar and locks editing (content stays
+visible); `formResetCallback` clears to an empty document and pushes `''`.
+
+**Bundle cost** — the Tiptap engine + DOMPurify add roughly 400 KB minified to
+builds that include `wb-form-field`; with the tree-shakeable
+`dist-custom-elements` output, consumers not importing the rich text path keep
+their bundles unchanged. No lazy-loading in v1.
+
+Consumers render stored documents as sanitized HTML via the exported
+`docToHtml()` utility (Tiptap `generateHTML` + DOMPurify):
+
+```ts
+import { docToHtml } from '@webmobix/form-components';
+
+const html = docToHtml(JSON.parse(submission['field.7']));
+// → '<p><strong>Hello</strong> world</p>' — scripts and on* attributes stripped
+```
 
 #### `<wb-canvas>`
 
@@ -180,7 +217,7 @@ across the shadow boundary. Emits a `FieldTypeDef` per entry:
 | `wbPaletteDragEnd` | `FieldTypeDef \| null` | A drag ends (`null` if it was just a click, not a move). |
 
 Built-in `FieldTypeDef` entries: text, email, URL, number, password, dropdown, date,
-checkbox, plus heading / paragraph / row design elements.
+checkbox, rich text, plus heading / paragraph / row design elements.
 
 #### `<wb-inspector>`
 
@@ -205,7 +242,8 @@ Edits the selected field's settings and emits patches for the canvas to apply.
 | `setField` | `field: FieldMeta \| null` |
 
 Emits patches for label (with empty-label validation), required, number min/max/step,
-text maxLength, multiline + initialLines + maxHeight, paragraph text, and row columns.
+text maxLength (also for rich text fields), rich text placeholder, multiline +
+initialLines + maxHeight, paragraph text, and row columns.
 
 #### `<wb-form-renderer>`
 
