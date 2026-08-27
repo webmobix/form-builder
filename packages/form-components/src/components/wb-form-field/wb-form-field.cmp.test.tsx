@@ -10,8 +10,13 @@ const mountField = async (attrs = ''): Promise<FieldEl> => {
   document.body.innerHTML = `<form id="f"><wb-form-field name="field.9" ${attrs}></wb-form-field></form>`;
   const el = document.querySelector('wb-form-field') as unknown as FieldEl;
   await customElements.whenDefined('wb-form-field');
-  // wait for Stencil render + Tiptap mount in componentDidLoad
-  for (let i = 0; i < 50 && !el.shadowRoot?.querySelector('.tiptap'); i++) {
+  // wait for Stencil render + Tiptap mount in componentDidLoad; the toolbar
+  // is part of Stencil's initial render, so its presence means the shadow
+  // root is populated (avoids asserting against an unrendered component).
+  for (let i = 0; i < 100 && !el.shadowRoot?.querySelector('.wb-richtext__toolbar'); i++) {
+    await new Promise(r => setTimeout(r, 20));
+  }
+  for (let i = 0; i < 100 && !el.shadowRoot?.querySelector('.tiptap'); i++) {
     await new Promise(r => setTimeout(r, 20));
   }
   return el;
