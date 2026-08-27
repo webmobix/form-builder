@@ -221,7 +221,7 @@ export class WbCanvas {
         const col = columns.item(j);
         const colRect = col.getBoundingClientRect();
         if (x < colRect.left || x > colRect.right) continue;
-        const childEls = col.querySelectorAll<HTMLElement>('.column-child');
+        const childEls = col.querySelectorAll<HTMLElement>('[data-element-id]');
         let index = childEls.length;
         for (let k = 0; k < childEls.length; k++) {
           const r = childEls.item(k).getBoundingClientRect();
@@ -297,7 +297,9 @@ export class WbCanvas {
 
   private getInsertionIndex(y: number): number {
     if (!this.listEl) return this.fields.length;
-    const rows = Array.from(this.listEl.querySelectorAll<HTMLElement>('[data-row]'));
+    // Top-level reorder only: nested row children must not be counted, since
+    // commitDrop reorders the top-level `fields` array against this index.
+    const rows = Array.from(this.listEl.querySelectorAll<HTMLElement>(':scope > [data-element-id]'));
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i].getBoundingClientRect();
       if (y < r.top + r.height / 2) return i;
@@ -305,29 +307,33 @@ export class WbCanvas {
     return rows.length;
   }
 
-  private onRowClick = (field: FieldMeta) => {
-    this.selectedId = field.id;
-    this.wbFieldSelected.emit(field);
-  };
-
-  private onRowKeyDown = (field: FieldMeta, e: KeyboardEvent) => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    const target = e.target as HTMLElement;
-    if (target.closest('[data-child-id]')) return;
-    e.preventDefault();
-    this.selectedId = field.id;
-    this.wbFieldSelected.emit(field);
-  };
-
-  private onChildClick = (field: FieldMeta, e: MouseEvent) => {
+  private onElementClick = (f: FieldMeta, e: MouseEvent) => {
     e.stopPropagation();
-    this.selectedId = field.id;
-    this.wbFieldSelected.emit(field);
+    this.selectedId = f.id;
+    this.wbFieldSelected.emit(f);
+  };
+
+  private onElementKeyDown = (f: FieldMeta, e: KeyboardEvent) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    this.selectedId = f.id;
+    this.wbFieldSelected.emit(f);
+  };
+
+  private onGripPointerDown = (f: FieldMeta, e: PointerEvent) => {
+    e.stopPropagation();
+    this.selectedId = f.id;
+    this.wbFieldSelected.emit(f);
+    // Only top-level fields participate in the reorder drag flow; nested
+    // children select on grip press but do not reorder.
+    if (this.fields.some(x => x.id === f.id)) {
+      this.startDrag(f, e);
+    }
   };
 
   private onWrapClick = (e: MouseEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest('[data-row]')) return;
+    if (target.closest('[data-element-id]')) return;
     if (this.selectedId !== null) {
       this.selectedId = null;
       this.wbFieldDeselected.emit();
@@ -337,7 +343,7 @@ export class WbCanvas {
   private onWrapKeyDown = (e: KeyboardEvent) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     const target = e.target as HTMLElement;
-    if (target.closest('[data-row]')) return;
+    if (target.closest('[data-element-id]')) return;
     e.preventDefault();
     if (this.selectedId !== null) {
       this.selectedId = null;
@@ -402,66 +408,114 @@ export class WbCanvas {
     return 'Design';
   }
 
-  private renderRowBody(f: FieldMeta) {
+  private renderFieldPreview(f: FieldMeta) {
+    return (
+      <wb-form-field
+        name={`field.${f.id}`}
+        label={f.label}
+        type={f.type}
+        subtype={f.subtype}
+        required={!!f.required}
+        restrictions={f.restrictions}
+        multiline={!!f.multiline}
+        initialLines={f.initialLines}
+        maxHeight={f.maxHeight}
+        placeholder={f.placeholder}
+        disabled
+      />
+    );
+  }
+
+  private renderElement(f: FieldMeta): VNode {
+    const isRow = f.kind === 'design' && f.designType === 'row';
+    const isTarget = this.dropTarget?.kind === 'column' && this.dropTarget.containerId === f.id;
+    const targetCol = isTarget ? (this.dropTarget as Extract<DropTarget, { kind: 'column' }>).colIndex : -1;
+    const targetIndex = isTarget ? (this.dropTarget as Extract<DropTarget, { kind: 'column' }>).index : -1;
+
+    let body: VNode;
     if (f.kind !== 'design') {
-      return <span class="body">{f.label}</span>;
-    }
-    if (f.designType === 'heading') {
-      return <span class="body heading">{f.label}</span>;
-    }
-    if (f.designType === 'paragraph') {
-      const preview = f.text ? f.text.split('\n')[0].trim() : '';
-      return (
-        <span class="body">
-          <span class="row-label">{f.label}</span>
-          {preview && <span class="preview">{preview}</span>}
-        </span>
-      );
-    }
-    if (f.designType === 'row') {
+      body = this.renderFieldPreview(f);
+    } else if (f.designType === 'heading') {
+      body = <h2 class="preview-heading">{f.label}</h2>;
+    } else if (f.designType === 'paragraph') {
+      body = <p class="preview-paragraph">{f.text ?? f.label}</p>;
+    } else if (f.designType === 'row') {
       const columns = f.columns ?? defaultColumns;
       const children = f.children ?? [];
-      const isTarget = this.dropTarget?.kind === 'column' && this.dropTarget.containerId === f.id;
-      const targetCol = isTarget ? (this.dropTarget as Extract<DropTarget, { kind: 'column' }>).colIndex : -1;
-      const targetIndex = isTarget ? (this.dropTarget as Extract<DropTarget, { kind: 'column' }>).index : -1;
-      return (
-        <span class="body">
-          <span class="row-label">{f.label}</span>
-          <span class="row-container" data-container-id={f.id}>
-            {Array.from({ length: columns }, (_, colIndex) => {
-              const stack = children[colIndex] ?? [];
-              const isColTarget = isTarget && colIndex === targetCol;
-              const items: VNode[] = [];
-              stack.forEach((child, childIdx) => {
-                if (isColTarget && childIdx === targetIndex) items.push(<span class="drop-line" />);
-                items.push(
-                  <button
-                    type="button"
-                    class={{ 'column-child': true, 'column-child--selected': this.selectedId === child.id }}
-                    key={child.id}
-                    data-child-id={child.id}
-                    onClick={e => this.onChildClick(child, e)}
-                  >
-                    {child.kind === 'design' && child.designType === 'heading' && <span class="child-heading">{child.label}</span>}
-                    {child.kind === 'design' && child.designType === 'paragraph' && <span class="child-text">{child.text ?? child.label}</span>}
-                    {child.kind === 'design' && child.designType === 'row' && <span class="child-row">Row</span>}
-                    {child.kind !== 'design' && <span class="child-field">{child.label}</span>}
-                  </button>,
-                );
-              });
-              if (isColTarget && targetIndex >= stack.length) items.push(<span class="drop-line" />);
-              return (
-                // biome-ignore lint/suspicious/noArrayIndexKey: columns are a fixed-size flex layout; column index is the stable identity
-                <span class={{ column: true, 'drop-active': isColTarget }} data-column={colIndex} key={colIndex}>
-                  {items}
-                </span>
-              );
-            })}
-          </span>
-        </span>
+      body = (
+        <div class="row-container" data-container-id={f.id}>
+          {Array.from({ length: columns }, (_, colIndex) => {
+            const stack = children[colIndex] ?? [];
+            const isColTarget = isTarget && colIndex === targetCol;
+            const items: VNode[] = [];
+            stack.forEach((child, childIdx) => {
+              if (isColTarget && childIdx === targetIndex) items.push(<span class="drop-line" />);
+              items.push(this.renderElement(child));
+            });
+            if (isColTarget && targetIndex >= stack.length) items.push(<span class="drop-line" />);
+            if (stack.length === 0 && !isColTarget) {
+              items.push(<span class="empty-slot" />);
+            }
+            return (
+              // biome-ignore lint/suspicious/noArrayIndexKey: columns are a fixed-size flex layout; column index is the stable identity
+              <div class={{ column: true, 'drop-active': isColTarget }} data-column={colIndex} key={colIndex}>
+                {items}
+              </div>
+            );
+          })}
+        </div>
       );
+    } else {
+      body = <span class="body">{f.label}</span>;
     }
-    return <span class="body">{f.label}</span>;
+
+    return (
+      // biome-ignore lint/a11y/useSemanticElements: element is a grouping container that holds nested interactive previews; a real <button> cannot contain buttons
+      // biome-ignore lint/a11y/useFocusableInteractive: div is made keyboard-focusable via tabindex and Enter/Space handlers
+      <div
+        role="button"
+        tabindex="0"
+        class={{
+          'canvas-element': true,
+          'canvas-element--row': isRow,
+          dragging: this.draggingId === f.id,
+          selected: this.selectedId === f.id,
+        }}
+        data-element-id={f.id}
+        key={f.id}
+        onClick={e => this.onElementClick(f, e)}
+        onKeyDown={e => this.onElementKeyDown(f, e)}
+      >
+        <span class="grip" title="Drag to move" onPointerDown={e => this.onGripPointerDown(f, e)}>
+          <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+            <circle cx="5" cy="4" r="1.4" fill="currentColor" />
+            <circle cx="11" cy="4" r="1.4" fill="currentColor" />
+            <circle cx="5" cy="8" r="1.4" fill="currentColor" />
+            <circle cx="11" cy="8" r="1.4" fill="currentColor" />
+            <circle cx="5" cy="12" r="1.4" fill="currentColor" />
+            <circle cx="11" cy="12" r="1.4" fill="currentColor" />
+          </svg>
+        </span>
+        <span class="type-tag">{this.rowTypeLabel(f)}</span>
+        <div class="element-body">{body}</div>
+      </div>
+    );
+  }
+
+  render() {
+    return (
+      // biome-ignore lint/a11y/noStaticElementInteractions: container that deselects on empty-area click; elements are real buttons
+      <div class="wrap" ref={el => (this.listEl = el)} onClick={this.onWrapClick} onKeyDown={this.onWrapKeyDown}>
+        {this.fields.map((f, idx) => (
+          // biome-ignore lint/correctness/useJsxKeyInIterable: Stencil Fragment takes no key; the keyed element is the row below
+          <Fragment>
+            {this.dropTarget?.kind === 'top' && this.dropTarget.index === idx && <div class="indicator" />}
+            {this.renderElement(f)}
+          </Fragment>
+        ))}
+        {this.dropTarget?.kind === 'top' && this.dropTarget.index === this.fields.length && <div class="indicator" />}
+      </div>
+    );
   }
 
   private commitDrop(id: number) {
@@ -480,39 +534,5 @@ export class WbCanvas {
     this.ghostEl = undefined;
     this.hoverIndex = null;
     this.draggingId = null;
-  }
-
-  render() {
-    return (
-      // biome-ignore lint/a11y/noStaticElementInteractions: container that deselects on empty-area click; rows are real buttons
-      <div class="wrap" ref={el => (this.listEl = el)} onClick={this.onWrapClick} onKeyDown={this.onWrapKeyDown}>
-        {this.fields.map((f, idx) => (
-          // biome-ignore lint/correctness/useJsxKeyInIterable: Stencil Fragment takes no key; the keyed element is the row button below
-          <Fragment>
-            {this.dropTarget?.kind === 'top' && this.dropTarget.index === idx && <div class="indicator" />}
-            {
-              // biome-ignore lint/a11y/useSemanticElements: row is a grouping container that holds nested child buttons; a real <button> cannot contain buttons
-              // biome-ignore lint/a11y/useFocusableInteractive: div is made keyboard-focusable via tabindex and Enter/Space handlers
-              <div
-                role="button"
-                tabindex="0"
-                class={{ row: true, dragging: this.draggingId === f.id, selected: this.selectedId === f.id }}
-                data-row
-                key={f.id}
-                onClick={() => this.onRowClick(f)}
-                onKeyDown={e => this.onRowKeyDown(f, e)}
-              >
-                <span class="handle" onPointerDown={e => this.startDrag(f, e)}>
-                  ⠿
-                </span>
-                {this.renderRowBody(f)}
-                <span class="type">{this.rowTypeLabel(f)}</span>
-              </div>
-            }
-          </Fragment>
-        ))}
-        {this.dropTarget?.kind === 'top' && this.dropTarget.index === this.fields.length && <div class="indicator" />}
-      </div>
-    );
   }
 }

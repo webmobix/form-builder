@@ -109,3 +109,29 @@ describe('wb-form-field multiline', () => {
     expect(textarea.getAttribute('maxLength')).toBe('500');
   });
 });
+
+describe('wb-form-field disabled prop', () => {
+  it('disables the input when disabled is true', async () => {
+    const { root } = await render(<wb-form-field name="name" type="text" label="Name" disabled></wb-form-field>);
+    const input = root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(input.disabled).toBe(true);
+  });
+
+  it('leaves the input enabled by default (no prop)', async () => {
+    const { root } = await render(<wb-form-field name="name" type="text" label="Name"></wb-form-field>);
+    const input = root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(input.disabled).toBe(false);
+  });
+
+  it('disables the textarea when multiline and disabled', async () => {
+    const { root } = await render(<wb-form-field name="notes" type="text" label="Notes" multiline disabled></wb-form-field>);
+    const textarea = root.shadowRoot!.querySelector('textarea') as HTMLTextAreaElement;
+    expect(textarea.hasAttribute('disabled')).toBe(true);
+  });
+
+  it('disables the checkbox when disabled', async () => {
+    const { root } = await render(<wb-form-field name="agree" type="checkbox" label="Agree" disabled></wb-form-field>);
+    const input = root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(input.disabled).toBe(true);
+  });
+});

@@ -21,18 +21,20 @@ describe('richtext builder surfaces', () => {
     expect(added.mock.calls[0][0].detail).toEqual({ type: 'richtext', label: 'Rich text' });
   });
 
-  it('canvas renders a richtext row with the Rich text badge and creates fields via addFieldAfter', async () => {
+  it('canvas renders a richtext row as a read-only preview and creates fields via addFieldAfter', async () => {
     const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
     const canvas = instance as any;
     await canvas.addFieldAfter('richtext', 'Bio');
     await waitForChanges();
 
-    const rows = root.shadowRoot!.querySelectorAll('[data-row]');
+    const rows = root.shadowRoot!.querySelectorAll('[data-element-id]');
     const row = rows[rows.length - 1] as HTMLElement;
-    expect(row.textContent).toContain('Bio');
-    expect(row.querySelector('.type')!.textContent).toBe('Rich text');
-    // summary chip only — no contenteditable on the canvas
-    expect(row.querySelector('[contenteditable]')).toBeNull();
+    // richtext renders a real (read-only) wb-form-field preview
+    const field = row.querySelector('wb-form-field') as HTMLElement;
+    expect(field).not.toBeNull();
+    expect(field.getAttribute('label')).toBe('Bio');
+    expect(field.getAttribute('type')).toBe('richtext');
+    expect(field.getAttribute('disabled')).not.toBeNull();
     expect(canvas.fields[canvas.fields.length - 1].type).toBe('richtext');
   });
 

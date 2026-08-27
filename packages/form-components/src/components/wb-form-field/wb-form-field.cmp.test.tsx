@@ -178,6 +178,20 @@ describe('disabled and reset behavior', () => {
     expect(isEmptyDoc(parseStoredValue(formValue(el) as string) ?? { type: 'doc' })).toBe(true);
     expect(formValue(el)).toBe('');
   });
+
+  test('disabled prop locks editing and hides the toolbar', async () => {
+    const el = await mountField('type="richtext" label="Bio"');
+    await userEvent.click(editable(el));
+    await userEvent.type(editable(el), 'Kept content');
+
+    (el as any).disabled = true;
+    await waitForTick();
+
+    const toolbar = el.shadowRoot.querySelector('.wb-richtext__toolbar')!;
+    expect(toolbar.hasAttribute('hidden')).toBe(true);
+    expect(editable(el).getAttribute('contenteditable')).toBe('false');
+    expect(editable(el).textContent).toContain('Kept content');
+  });
 });
 
 describe('link flow', () => {

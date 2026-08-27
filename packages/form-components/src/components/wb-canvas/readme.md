@@ -172,6 +172,19 @@ Type: `Promise<void>`
 
 
 
+## Dependencies
+
+### Depends on
+
+- [wb-form-field](../wb-form-field)
+
+### Graph
+```mermaid
+graph TD;
+  wb-canvas --> wb-form-field
+  style wb-canvas fill:#f9f,stroke:#333,stroke-width:4px
+```
+
 ----------------------------------------------
 
 *Built with [StencilJS](https://stenciljs.com/)*

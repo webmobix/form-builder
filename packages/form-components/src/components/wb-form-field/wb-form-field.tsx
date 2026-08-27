@@ -35,6 +35,8 @@ export class WbFormField {
   @Prop() maxHeight?: number;
   /** Muted helper text shown while a richtext editor is empty (richtext only). */
   @Prop() placeholder?: string;
+  /** When true, the control is rendered inert (not focusable/editable) but keeps its normal enabled appearance. */
+  @Prop() disabled = false;
 
   @State() value = '';
   @State() checked = false;
@@ -42,7 +44,6 @@ export class WbFormField {
   @State() private linkActive = false;
   @State() private linkEditing = false;
   @State() private linkError = '';
-  @State() private disabled = false;
 
   private inputEl?: HTMLInputElement | HTMLTextAreaElement;
   private editor?: Editor;
@@ -167,8 +168,17 @@ export class WbFormField {
   }
 
   formDisabledCallback(disabled: boolean) {
+    this.applyDisabled(disabled);
+  }
+
+  @Watch('disabled')
+  onDisabledChange() {
+    this.applyDisabled(this.disabled);
+  }
+
+  private applyDisabled(disabled: boolean) {
+    this.disabled = disabled;
     if (this.type === 'richtext') {
-      this.disabled = disabled;
       this.editor?.setEditable(!disabled);
       if (disabled) {
         this.linkEditing = false;
@@ -280,7 +290,7 @@ export class WbFormField {
     if (this.type === 'checkbox') {
       return (
         <label class="wb-field wb-field--checkbox">
-          <input type="checkbox" ref={el => (this.inputEl = el)} checked={this.checked} onChange={this.onInput} />
+          <input type="checkbox" ref={el => (this.inputEl = el)} checked={this.checked} disabled={this.disabled} onChange={this.onInput} />
           <span>
             {this.label}
             {this.required && <span class="required-mark"> *</span>}
@@ -312,6 +322,7 @@ export class WbFormField {
             ref={el => (this.inputEl = el)}
             rows={this.initialLines ?? 3}
             maxLength={maxLength}
+            disabled={this.disabled}
             style={this.maxHeight ? { maxHeight: `${this.maxHeight}px` } : undefined}
             value={this.value}
             onInput={this.onInput}
@@ -325,6 +336,7 @@ export class WbFormField {
             max={r?.max !== undefined ? r.max : undefined}
             step={r?.step !== undefined ? r.step : undefined}
             maxLength={maxLength}
+            disabled={this.disabled}
             value={this.value}
             onInput={this.onInput}
           />

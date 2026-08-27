@@ -11,16 +11,20 @@ The palette (`wb-palette`) SHALL include a data-field entry `{ type: 'richtext',
 - **WHEN** the user clicks or drags the "Rich text" palette entry into the canvas
 - **THEN** the canvas appends a field with `type: 'richtext'`, a default label, a fresh numeric `id`, and no `subtype`
 
-### Requirement: Canvas represents rich text fields as summary chips
-The canvas SHALL render `richtext` fields as non-editable summary rows consistent with other data fields: the row body SHALL show the field's label plus a type badge reading "Rich text". The canvas SHALL NOT render a live editor on the canvas row, and `rowTypeLabel()` SHALL map `richtext` accordingly.
+### Requirement: Canvas renders rich text fields as read-only live previews
+The canvas SHALL render `type: 'richtext'` fields as real read-only Tiptap instances matching the live form rendering, including the placeholder hint when the content is empty. The toolbar and link bar SHALL be hidden and the editor SHALL NOT be editable. Selection and drag/reorder SHALL operate on the element wrapper exactly as for other data fields.
 
-#### Scenario: Rich text row shows chip with badge
-- **WHEN** a form definition contains a field with `type: 'richtext'`
-- **THEN** the canvas renders its summary chip showing the field's label and the type badge "Rich text"
+#### Scenario: Empty richtext shows its placeholder hint
+- **WHEN** the canvas renders an empty richtext field that has a placeholder configured
+- **THEN** the read-only editor displays the placeholder hint as the live form does
 
-#### Scenario: No live editor on the canvas
-- **WHEN** the user views or drags a richtext row on the canvas
-- **THEN** the row contains no contenteditable region and drag/reorder behaves exactly as for other data fields
+#### Scenario: Editor is not editable on the canvas
+- **WHEN** the user attempts to type or use formatting in a canvas-rendered richtext field
+- **THEN** the editor does not enter edit mode and no toolbar or link bar is visible
+
+#### Scenario: Wrapper-level select and drag behave like other fields
+- **WHEN** the user clicks the grip badge of a richtext element
+- **THEN** selection and drag/reorder proceed identically to other data fields
 
 ### Requirement: Field model carries the richtext type and placeholder
 `form-core` SHALL extend `FieldType` with `'richtext'`. `FieldMeta` SHALL expose an optional `placeholder?: string` presentation property that, in this change, applies only to fields whose `type` is `'richtext'`; it is presentation-only and SHALL NOT participate in value validation.

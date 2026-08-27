@@ -51,6 +51,26 @@
   gap: 8px;
 }
 
+/* Disabled controls keep their normal enabled appearance (no browser graying)
+   so canvas previews look identical to the live form. */
+.wb-field input:disabled,
+.wb-field textarea:disabled {
+  opacity: 1;
+  color: inherit;
+  background: #fff;
+  cursor: default;
+}
+
+.wb-field--checkbox input:disabled {
+  opacity: 1;
+  accent-color: #2f6fed;
+}
+
+.wb-richtext__editor:has(.tiptap[contenteditable="false"]) {
+  background: #fff;
+  color: inherit;
+}
+
 /* ---- rich text -------------------------------------------------------- */
 
 .wb-richtext__toolbar {

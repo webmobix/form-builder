@@ -40,6 +40,11 @@ export namespace Components {
      * see the collision risk noted after the ElementInternals spike.
      */
     interface WbFormField {
+        /**
+          * When true, the control is rendered inert (not focusable/editable) but keeps its normal enabled appearance.
+          * @default false
+         */
+        "disabled": boolean;
         "initialLines"?: number;
         "label": string;
         "maxHeight"?: number;
@@ -235,7 +240,8 @@ declare namespace LocalJSX {
      */
     interface WbFormField {
         /**
-          * If `true`, the user cannot interact with the element.
+          * When true, the control is rendered inert (not focusable/editable) but keeps its normal enabled appearance.
+          * @default false
          */
         "disabled"?: boolean;
         /**
@@ -299,6 +305,7 @@ declare namespace LocalJSX {
         "initialLines": number;
         "maxHeight": number;
         "placeholder": string;
+        "disabled": boolean;
     }
 
     interface IntrinsicElements {

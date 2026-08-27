@@ -18,29 +18,32 @@ see the collision risk noted after the ElementInternals spike.
 
 ## Properties
 
-| Property             | Attribute       | Description                                                               | Type                                                            | Default     |
-| -------------------- | --------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------- | ----------- |
-| `initialLines`       | `initial-lines` |                                                                           | `number`                                                        | `undefined` |
-| `label` _(required)_ | `label`         |                                                                           | `string`                                                        | `undefined` |
-| `maxHeight`          | `max-height`    |                                                                           | `number`                                                        | `undefined` |
-| `multiline`          | `multiline`     |                                                                           | `boolean`                                                       | `false`     |
-| `name` _(required)_  | `name`          | JSON Pointer path used as the form-submission key, e.g. "personal.email"  | `string`                                                        | `undefined` |
-| `placeholder`        | `placeholder`   | Muted helper text shown while a richtext editor is empty (richtext only). | `string`                                                        | `undefined` |
-| `required`           | `required`      |                                                                           | `boolean`                                                       | `false`     |
-| `restrictions`       | --              |                                                                           | `Restrictions`                                                  | `undefined` |
-| `subtype`            | `subtype`       |                                                                           | `"email" \| "number" \| "password" \| "tel" \| "text" \| "url"` | `undefined` |
-| `type`               | `type`          |                                                                           | `"checkbox" \| "date" \| "richtext" \| "select" \| "text"`      | `'text'`    |
+| Property             | Attribute       | Description                                                                                                | Type                                                            | Default     |
+| -------------------- | --------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ----------- |
+| `disabled`           | `disabled`      | When true, the control is rendered inert (not focusable/editable) but keeps its normal enabled appearance. | `boolean`                                                       | `false`     |
+| `initialLines`       | `initial-lines` |                                                                                                            | `number`                                                        | `undefined` |
+| `label` _(required)_ | `label`         |                                                                                                            | `string`                                                        | `undefined` |
+| `maxHeight`          | `max-height`    |                                                                                                            | `number`                                                        | `undefined` |
+| `multiline`          | `multiline`     |                                                                                                            | `boolean`                                                       | `false`     |
+| `name` _(required)_  | `name`          | JSON Pointer path used as the form-submission key, e.g. "personal.email"                                   | `string`                                                        | `undefined` |
+| `placeholder`        | `placeholder`   | Muted helper text shown while a richtext editor is empty (richtext only).                                  | `string`                                                        | `undefined` |
+| `required`           | `required`      |                                                                                                            | `boolean`                                                       | `false`     |
+| `restrictions`       | --              |                                                                                                            | `Restrictions`                                                  | `undefined` |
+| `subtype`            | `subtype`       |                                                                                                            | `"email" \| "number" \| "password" \| "tel" \| "text" \| "url"` | `undefined` |
+| `type`               | `type`          |                                                                                                            | `"checkbox" \| "date" \| "richtext" \| "select" \| "text"`      | `'text'`    |
 
 
 ## Dependencies
 
 ### Used by
 
+ - [wb-canvas](../wb-canvas)
  - [wb-form-renderer](../wb-form-renderer)
 
 ### Graph
 ```mermaid
 graph TD;
+  wb-canvas --> wb-form-field
   wb-form-renderer --> wb-form-field
   style wb-form-field fill:#f9f,stroke:#333,stroke-width:4px
 ```

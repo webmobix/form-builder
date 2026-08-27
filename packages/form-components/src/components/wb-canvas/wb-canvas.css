@@ -7,70 +7,126 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
-.row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* ---- element wrapper -------------------------------------------------- */
+
+.canvas-element {
+  position: relative;
   background: #fff;
   border: 1px solid #e4e4e0;
   border-radius: 10px;
   padding: 12px;
-  font-size: 14px;
   cursor: pointer;
+  outline: none;
+  transition:
+    box-shadow 0.12s ease,
+    border-color 0.12s ease;
 }
 
-.row.dragging {
+.canvas-element.dragging {
   opacity: 0.35;
 }
 
-.row.selected {
-  border-color: #2f6fed;
-  box-shadow: 0 0 0 1px #2f6fed;
+/* Hover: solid light-blue outline on leaf elements, dashed on layout rows. */
+.canvas-element:hover {
+  border-color: #9db9f5;
+  box-shadow: 0 0 0 2px #9db9f5;
 }
 
-.handle {
-  touch-action: none;
-  color: #aaa;
-  font-size: 18px;
-  padding: 4px;
+.canvas-element--row:hover {
+  border-color: #9db9f5;
+  box-shadow: 0 0 0 2px #9db9f5;
+  border-style: dashed;
+}
+
+/* Selected: persistent solid accent ring + faint shadow, distinct from hover. */
+.canvas-element.selected {
+  border-color: #2f6fed;
+  box-shadow:
+    0 0 0 2px #2f6fed,
+    0 4px 12px rgba(47, 111, 237, 0.18);
+}
+
+/* ---- drag grip -------------------------------------------------------- */
+
+.grip {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #cfcfca;
+  color: #777;
   cursor: grab;
+  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
-.body {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.grip:hover {
+  color: #2f6fed;
+  border-color: #2f6fed;
+}
+
+/* ---- type tag (revealed on hover/selection) --------------------------- */
+
+.type-tag {
+  position: absolute;
+  top: -9px;
+  right: 8px;
+  z-index: 3;
+  display: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #f2f2ef;
+  border: 1px solid #dcdcd7;
+  color: #666;
+  font-size: 11px;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.canvas-element:hover .type-tag,
+.canvas-element.selected .type-tag {
+  display: inline-block;
+}
+
+/* ---- element body ----------------------------------------------------- */
+
+.element-body {
   min-width: 0;
 }
 
-.body.heading {
-  font-size: 16px;
+/* Realistic design-element typography mirroring wb-form-renderer.css. */
+.preview-heading {
+  margin: 0;
+  font-size: 1.5em;
   font-weight: 700;
 }
 
-.row-label {
-  font-weight: 600;
+.preview-paragraph {
+  margin: 0;
+  white-space: pre-line;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
 }
 
-.preview {
-  color: #777;
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* ---- row containers / columns ----------------------------------------- */
 
 .row-container {
   display: flex;
-  gap: 8px;
-  flex: 1;
+  gap: 12px;
   min-width: 0;
   align-items: stretch;
 }
@@ -79,76 +135,34 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  border: 1px dashed #cfcfca;
-  border-radius: 8px;
-  padding: 6px;
-  background: #fafaf8;
+  gap: 12px;
   min-width: 0;
   min-height: 44px;
+  justify-content: flex-start;
   transition:
     background 0.12s ease,
     border-color 0.12s ease,
     box-shadow 0.12s ease;
-  justify-content: flex-start;
 }
 
 .column.drop-active {
   background: #eef4ff;
-  border-color: #2f6fed;
-  border-style: solid;
-  box-shadow: 0 0 0 1px #2f6fed;
+  box-shadow: 0 0 0 2px #2f6fed;
+  border-radius: 8px;
+}
+
+/* Empty-column slot placeholder. */
+.empty-slot {
+  min-height: 44px;
+  border: 1px dashed #cfcfca;
+  border-radius: 8px;
+  background: #fafaf8;
 }
 
 .drop-line {
   height: 3px;
   border-radius: 2px;
   background: #2f6fed;
-  flex-shrink: 0;
-}
-
-.column-child {
-  background: #fff;
-  border: 1px solid #e4e4e0;
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-}
-
-.column-child:hover {
-  border-color: #b6c8ec;
-}
-
-.column-child--selected {
-  border-color: #2f6fed;
-  box-shadow: 0 0 0 1px #2f6fed;
-}
-
-.child-heading {
-  font-weight: 700;
-}
-
-.child-text {
-  color: #444;
-}
-
-.child-field {
-  color: #333;
-}
-
-.child-row {
-  color: #666;
-}
-
-.type {
-  font-size: 12px;
-  color: #999;
   flex-shrink: 0;
 }
 

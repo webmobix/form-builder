@@ -278,7 +278,7 @@ describe('wb-canvas selection and update API', () => {
     const { root } = await render(<wb-canvas></wb-canvas>);
     const spy = vi.fn();
     root.addEventListener('wbFieldSelected', spy);
-    const row = root.shadowRoot!.querySelector('[data-row]') as HTMLElement;
+    const row = root.shadowRoot!.querySelector('[data-element-id]') as HTMLElement;
     row.click();
     expect(spy).toHaveBeenCalled();
   });
@@ -414,5 +414,111 @@ describe('wb-canvas importState', () => {
     await canvas.importState([{ id: 'x', type: 'text', label: 'A' }] as any);
     expect(canvas.fields).toEqual(before);
     expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+describe('wb-canvas realistic preview rendering', () => {
+  it('stamps a disabled wb-form-field for data fields', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([{ id: 1, type: 'text', label: 'Name' }]);
+    await waitForChanges();
+    const field = root.shadowRoot!.querySelector('wb-form-field') as HTMLElement;
+    expect(field).not.toBeNull();
+    expect(field.getAttribute('label')).toBe('Name');
+    expect(field.getAttribute('disabled')).not.toBeNull();
+  });
+
+  it('renders a paragraph with its text body', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([{ id: 1, kind: 'design', type: 'text', label: 'Intro', designType: 'paragraph', text: 'Full prose body' }]);
+    await waitForChanges();
+    const p = root.shadowRoot!.querySelector('.preview-paragraph') as HTMLElement;
+    expect(p).not.toBeNull();
+    expect(p.textContent).toBe('Full prose body');
+  });
+
+  it('renders a heading with its label', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([{ id: 1, kind: 'design', type: 'text', label: 'Section', designType: 'heading' }]);
+    await waitForChanges();
+    const heading = root.shadowRoot!.querySelector('.preview-heading') as HTMLElement;
+    expect(heading).not.toBeNull();
+    expect(heading.textContent).toBe('Section');
+  });
+
+  it('renders row containers with real columns and children', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      {
+        id: 1,
+        kind: 'design',
+        type: 'text',
+        label: 'Row',
+        designType: 'row',
+        columns: 2,
+        children: [[{ id: 2, type: 'text', label: 'ChildA' }], []],
+      },
+    ]);
+    await waitForChanges();
+    const container = root.shadowRoot!.querySelector('[data-container-id]') as HTMLElement;
+    expect(container).not.toBeNull();
+    const columns = container.querySelectorAll('[data-column]');
+    expect(columns).toHaveLength(2);
+    const child = container.querySelector('[data-element-id]') as HTMLElement;
+    expect(child).not.toBeNull();
+    expect(child.querySelector('wb-form-field')?.getAttribute('label')).toBe('ChildA');
+  });
+
+  it('shows an empty-slot strip in an empty column and hides it once filled', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      {
+        id: 1,
+        kind: 'design',
+        type: 'text',
+        label: 'Row',
+        designType: 'row',
+        columns: 2,
+        children: [[], []],
+      },
+    ]);
+    await waitForChanges();
+    const container = root.shadowRoot!.querySelector('[data-container-id]') as HTMLElement;
+    expect(container.querySelectorAll('.empty-slot')).toHaveLength(2);
+
+    await canvas.updateField(1, { children: [[{ id: 2, type: 'text', label: 'A' }], []] });
+    await waitForChanges();
+    const updated = root.shadowRoot!.querySelector('[data-container-id]') as HTMLElement;
+    expect(updated.querySelectorAll('.empty-slot')).toHaveLength(1);
+  });
+
+  it('grip badge is always visible and starts a drag on pointerdown', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([{ id: 1, type: 'text', label: 'Name' }]);
+    await waitForChanges();
+    const grip = root.shadowRoot!.querySelector('.grip') as HTMLElement;
+    expect(grip).not.toBeNull();
+    expect(grip.getAttribute('title')).toBe('Drag to move');
+    const startDragSpy = vi.spyOn(canvas, 'startDrag');
+    grip.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    expect(canvas.selectedId).toBe(1);
+    expect(startDragSpy).toHaveBeenCalled();
+  });
+
+  it('dragging from the element body does not start a drag', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([{ id: 1, type: 'text', label: 'Name' }]);
+    await waitForChanges();
+    const startDragSpy = vi.spyOn(canvas, 'startDrag');
+    const body = root.shadowRoot!.querySelector('.element-body') as HTMLElement;
+    body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    expect(startDragSpy).not.toHaveBeenCalled();
   });
 });
