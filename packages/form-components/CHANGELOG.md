@@ -1,5 +1,12 @@
 # @webmobix/form-components
 
+## 0.4.0
+
+### Minor Changes
+
+- 636c111: preview canvas now shows real form element
+- be3751b: Add a real select field instead of the placeholder and fix rendering bugs on Safari.
+
 ## 0.3.0
 
 ### Minor Changes

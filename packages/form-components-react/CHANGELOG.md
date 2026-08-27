@@ -1,5 +1,17 @@
 # @webmobix/form-components-react
 
+## 0.1.0
+
+### Minor Changes
+
+- be3751b: Add a real select field instead of the placeholder and fix rendering bugs on Safari.
+
+### Patch Changes
+
+- Updated dependencies [636c111]
+- Updated dependencies [be3751b]
+  - @webmobix/form-components@0.4.0
+
 ## 0.0.5
 
 ### Patch Changes
