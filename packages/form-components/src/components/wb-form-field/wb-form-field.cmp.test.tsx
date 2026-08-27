@@ -22,6 +22,17 @@ const toolbarBtn = (el: FieldEl, title: string) => el.shadowRoot.querySelector<H
 const formValue = (el: FieldEl) => new FormData(el.closest('form') as HTMLFormElement).get('field.9');
 const parsedValue = (el: FieldEl) => JSON.parse(formValue(el) as string);
 
+const mountSelect = async (attrs = ''): Promise<FieldEl> => {
+  document.body.innerHTML = `<form id="f"><wb-form-field name="field.9" type="select" ${attrs}></wb-form-field></form>`;
+  const el = document.querySelector('wb-form-field') as unknown as FieldEl;
+  await customElements.whenDefined('wb-form-field');
+  for (let i = 0; i < 50 && !el.shadowRoot?.querySelector('select'); i++) {
+    await new Promise(r => setTimeout(r, 20));
+  }
+  return el;
+};
+const select = (el: FieldEl) => el.shadowRoot.querySelector('select') as HTMLSelectElement;
+
 test('renders a fixed toolbar above the editable area', async () => {
   const el = await mountField('type="richtext" label="Bio"');
   const buttons = Array.from(el.shadowRoot.querySelectorAll('.wb-richtext__toolbar button')).map(b => b.getAttribute('title'));
@@ -236,6 +247,35 @@ describe('link flow', () => {
     // refused: error shown and href unchanged
     expect(el.shadowRoot.querySelector('.wb-richtext__error')?.textContent).toBe('Enter a valid URL');
     expect(editable(el).querySelector('a')?.getAttribute('href')).toBe('https://safe.example');
+  });
+});
+
+describe('select submission and required validation', () => {
+  test('submits the chosen option key as the field value', async () => {
+    const el = await mountSelect('');
+    (el as any).options = [
+      { key: 'red', label: 'Red' },
+      { key: 'green', label: 'Green' },
+    ];
+    await waitForTick();
+    const sel = select(el);
+    await userEvent.selectOptions(sel, 'green');
+    await waitForTick();
+    expect(formValue(el)).toBe('green');
+  });
+
+  test('empty required select reports a missing value and blocks submit', async () => {
+    const el = await mountSelect('required');
+    (el as any).options = [{ key: 'red', label: 'Red' }];
+    await waitForTick();
+    const form = el.closest('form') as HTMLFormElement;
+    expect(el.matches(':invalid')).toBe(true);
+    expect(form.checkValidity()).toBe(false);
+
+    await userEvent.selectOptions(select(el), 'red');
+    await waitForTick();
+    expect(el.matches(':invalid')).toBe(false);
+    expect(form.checkValidity()).toBe(true);
   });
 });
 

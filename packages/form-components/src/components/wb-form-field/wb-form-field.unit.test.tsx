@@ -65,6 +65,52 @@ describe('wb-form-field subtype and restrictions', () => {
   });
 });
 
+describe('wb-form-field select', () => {
+  it('renders a select (not an input) for select type', async () => {
+    const { root } = await render(
+      <wb-form-field
+        name="country"
+        type="select"
+        label="Country"
+        options={[
+          { key: 'red', label: 'Red' },
+          { key: 'green', label: 'Green' },
+          { key: 'blue', label: 'Blue' },
+        ]}
+      ></wb-form-field>,
+    );
+    const select = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
+    expect(select).not.toBeNull();
+    expect(root.shadowRoot!.querySelector('input')).toBeNull();
+  });
+
+  it('renders one option per options entry with value=key and label text', async () => {
+    const { root } = await render(
+      <wb-form-field
+        name="country"
+        type="select"
+        label="Country"
+        options={[
+          { key: 'red', label: 'Red' },
+          { key: 'green', label: 'Green' },
+          { key: 'blue', label: 'Blue' },
+        ]}
+      ></wb-form-field>,
+    );
+    const options = Array.from(root.shadowRoot!.querySelectorAll('select option'));
+    expect(options.length).toBe(3);
+    expect(options.map(o => o.getAttribute('value'))).toEqual(['red', 'green', 'blue']);
+    expect(options.map(o => o.textContent)).toEqual(['Red', 'Green', 'Blue']);
+  });
+
+  it('renders an empty select when no options are provided', async () => {
+    const { root } = await render(<wb-form-field name="country" type="select" label="Country"></wb-form-field>);
+    const select = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
+    expect(select).not.toBeNull();
+    expect(select.querySelectorAll('option').length).toBe(0);
+  });
+});
+
 describe('wb-form-field multiline', () => {
   it('renders a textarea when multiline is true', async () => {
     const { root } = await render(<wb-form-field name="notes" type="text" label="Notes" multiline></wb-form-field>);

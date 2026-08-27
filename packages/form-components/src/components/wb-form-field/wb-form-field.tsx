@@ -35,6 +35,8 @@ export class WbFormField {
   @Prop() maxHeight?: number;
   /** Muted helper text shown while a richtext editor is empty (richtext only). */
   @Prop() placeholder?: string;
+  /** Ordered list of selectable choices rendered as `<option>` children for `type="select"`. */
+  @Prop() options?: { key: string; label: string }[];
   /** When true, the control is rendered inert (not focusable/editable) but keeps its normal enabled appearance. */
   @Prop() disabled = false;
 
@@ -45,7 +47,7 @@ export class WbFormField {
   @State() private linkEditing = false;
   @State() private linkError = '';
 
-  private inputEl?: HTMLInputElement | HTMLTextAreaElement;
+  private inputEl?: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
   private editor?: Editor;
   private editorHostEl?: HTMLDivElement;
   private linkInputEl?: HTMLInputElement;
@@ -152,9 +154,14 @@ export class WbFormField {
   }
 
   private onInput = (e: Event) => {
-    const target = e.target as HTMLInputElement;
-    if (this.type === 'checkbox') this.checked = target.checked;
-    else this.value = target.value;
+    const target = e.target as HTMLInputElement | HTMLSelectElement;
+    if (target instanceof HTMLSelectElement) {
+      this.value = target.value;
+    } else if (this.type === 'checkbox') {
+      this.checked = target.checked;
+    } else {
+      this.value = target.value;
+    }
   };
   formResetCallback() {
     this.value = '';
@@ -295,6 +302,24 @@ export class WbFormField {
             {this.label}
             {this.required && <span class="required-mark"> *</span>}
           </span>
+        </label>
+      );
+    }
+
+    if (this.type === 'select') {
+      return (
+        <label class="wb-field" htmlFor={this.name}>
+          <span class="wb-field__label">
+            {this.label}
+            {this.required && <span class="required-mark"> *</span>}
+          </span>
+          <select id={this.name} class="wb-field__select" ref={el => (this.inputEl = el)} disabled={this.disabled} onInput={this.onInput}>
+            {(this.options ?? []).map(option => (
+              <option key={option.key} value={option.key} selected={this.value === option.key}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </label>
       );
     }

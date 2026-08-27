@@ -159,6 +159,138 @@ describe('wb-inspector', () => {
   });
 });
 
+describe('wb-inspector options editor', () => {
+  it('renders the Options editor for a select field', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({
+      id: 1,
+      type: 'select',
+      label: 'Country',
+      options: [
+        { key: 'us', label: 'US' },
+        { key: 'ca', label: 'CA' },
+      ],
+    });
+    await waitForChanges();
+    expect(root.shadowRoot!.textContent).toContain('Options');
+    const inputs = root.shadowRoot!.querySelectorAll('.options-editor__row input');
+    expect(inputs.length).toBe(2);
+    expect((inputs[0] as HTMLInputElement).value).toBe('US');
+    expect((inputs[1] as HTMLInputElement).value).toBe('CA');
+    expect(root.shadowRoot!.textContent).toContain('Add option');
+  });
+
+  it('hides the Options editor for non-select fields', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelector('.options-editor')).toBeNull();
+    expect(root.shadowRoot!.textContent).not.toContain('Options');
+  });
+
+  it('emits a patch when editing an option label (key follows label)', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    await inspector.setField({
+      id: 1,
+      type: 'select',
+      label: 'Country',
+      options: [{ key: 'a', label: 'A' }],
+    });
+    await waitForChanges();
+    const input = root.shadowRoot!.querySelector('.options-editor__row input') as HTMLInputElement;
+    input.value = 'Apple';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await waitForChanges();
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: expect.objectContaining({
+          id: 1,
+          patch: expect.objectContaining({ options: [{ key: 'Apple', label: 'Apple' }] }),
+        }),
+      }),
+    );
+  });
+
+  it('emits a patch when adding an option, preserving order', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    await inspector.setField({
+      id: 1,
+      type: 'select',
+      label: 'Country',
+      options: [{ key: 'a', label: 'A' }],
+    });
+    await waitForChanges();
+    const addBtn = Array.from(root.shadowRoot!.querySelectorAll('button')).find(b => b.textContent === 'Add option')!;
+    addBtn.click();
+    await waitForChanges();
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: expect.objectContaining({
+          patch: expect.objectContaining({
+            options: [
+              { key: 'a', label: 'A' },
+              { key: '', label: '' },
+            ],
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('emits a patch when removing an option, preserving the order of the rest', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    await inspector.setField({
+      id: 1,
+      type: 'select',
+      label: 'Country',
+      options: [
+        { key: 'a', label: 'A' },
+        { key: 'b', label: 'B' },
+        { key: 'c', label: 'C' },
+      ],
+    });
+    await waitForChanges();
+    const removeBtns = root.shadowRoot!.querySelectorAll('.options-editor__remove');
+    (removeBtns[1] as HTMLButtonElement).click();
+    await waitForChanges();
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: expect.objectContaining({
+          patch: expect.objectContaining({
+            options: [
+              { key: 'a', label: 'A' },
+              { key: 'c', label: 'C' },
+            ],
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('does not emit an options patch for non-select fields', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    await inspector.setField({ id: 1, type: 'checkbox', label: 'Agree' });
+    await waitForChanges();
+    const inputs = root.shadowRoot!.querySelectorAll('.options-editor__row input');
+    expect(inputs.length).toBe(0);
+    expect(spy).not.toHaveBeenCalled();
+  });
+});
+
 describe('wb-inspector multiline controls', () => {
   const multilineCheckbox = (root: HTMLElement) => {
     const labels = Array.from(root.shadowRoot!.querySelectorAll('.field-group--checkbox'));

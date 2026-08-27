@@ -183,6 +183,34 @@ describe('wb-form-renderer', () => {
     expect(field.shadowRoot!.querySelector('textarea')).toBeNull();
   });
 
+  it('forwards options to wb-form-field for a select field', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    const options = [
+      { key: 'us', label: 'US' },
+      { key: 'ca', label: 'CA' },
+      { key: 'mx', label: 'MX' },
+    ];
+    await renderer.setFields([{ id: 9, type: 'select', label: 'Country', options }]);
+    await waitForChanges();
+    const field = root.shadowRoot!.querySelector('wb-form-field') as any;
+    expect(field.options).toEqual(options);
+    const renderedOptions = field.shadowRoot!.querySelectorAll('select option');
+    expect(renderedOptions.length).toBe(3);
+    expect(renderedOptions[0].getAttribute('value')).toBe('us');
+    expect(renderedOptions[0].textContent).toBe('US');
+  });
+
+  it('renders an empty select when a select field has no options', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([{ id: 9, type: 'select', label: 'Country' }]);
+    await waitForChanges();
+    const field = root.shadowRoot!.querySelector('wb-form-field') as any;
+    expect(field.options).toBeUndefined();
+    expect(field.shadowRoot!.querySelectorAll('select option').length).toBe(0);
+  });
+
   it('renders a heading element as an h2 with no form control', async () => {
     const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
     const renderer = instance as any;

@@ -80,6 +80,8 @@ export interface FieldMeta {
   maxHeight?: number;
   /** Muted helper text shown while a richtext editor is empty (richtext-only in this change). */
   placeholder?: string;
+  /** Ordered list of selectable choices for a `select` (Dropdown) field. The editor UI uses the same value for `key` and `label`. */
+  options?: { key: string; label: string }[];
   designType?: DesignType;
   text?: string;
   columns?: number;

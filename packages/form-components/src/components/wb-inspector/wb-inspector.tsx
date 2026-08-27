@@ -135,6 +135,27 @@ export class WbInspector {
     this.emitPatch({ columns: clamped });
   };
 
+  private updateOptions(options: { key: string; label: string }[]) {
+    this.localField = { ...this.localField!, options };
+    this.emitPatch({ options });
+  }
+
+  private onOptionLabelInput = (index: number, e: Event) => {
+    const label = (e.target as HTMLInputElement).value;
+    const options = (this.localField?.options ?? []).map((option, i) => (i === index ? { key: label, label } : option));
+    this.updateOptions(options);
+  };
+
+  private onAddOption = () => {
+    const options = [...(this.localField?.options ?? []), { key: '', label: '' }];
+    this.updateOptions(options);
+  };
+
+  private onRemoveOption = (index: number) => {
+    const options = (this.localField?.options ?? []).filter((_, i) => i !== index);
+    this.updateOptions(options);
+  };
+
   render() {
     if (!this.localField) {
       return (
@@ -202,6 +223,24 @@ export class WbInspector {
           <span class="field-label">Field</span>
           <span class="field-display">{displayName(f.type, f.subtype)}</span>
         </div>
+
+        {f.type === 'select' && (
+          <div class="options-editor">
+            <span class="field-label">Options</span>
+            {(f.options ?? []).map((option, index) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: option keys can be empty or duplicated while editing, so the index is the stable identity
+              <div class="options-editor__row" key={index}>
+                <input class="input" type="text" placeholder="Option label" value={option.label} onInput={e => this.onOptionLabelInput(index, e)} />
+                <button type="button" class="options-editor__remove" title="Remove option" onClick={() => this.onRemoveOption(index)}>
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button type="button" class="options-editor__add" onClick={this.onAddOption}>
+              Add option
+            </button>
+          </div>
+        )}
 
         {isRichtext && (
           <label class="field-group">

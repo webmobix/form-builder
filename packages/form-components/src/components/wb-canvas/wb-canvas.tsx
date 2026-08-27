@@ -421,6 +421,7 @@ export class WbCanvas {
         initialLines={f.initialLines}
         maxHeight={f.maxHeight}
         placeholder={f.placeholder}
+        options={f.options}
         disabled
       />
     );

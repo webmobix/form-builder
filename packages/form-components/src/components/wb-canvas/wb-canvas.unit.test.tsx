@@ -240,6 +240,34 @@ describe('wb-canvas selection and update API', () => {
     expect(row.children[0][0].id).toBe(3);
   });
 
+  it('applies an options patch to a select field and forwards it to the preview', async () => {
+    const { root, instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([{ id: 1, type: 'select', label: 'Country' }]);
+    const wbChangeSpy = vi.fn();
+    root.addEventListener('wbChange', wbChangeSpy);
+
+    const options = [
+      { key: 'us', label: 'US' },
+      { key: 'ca', label: 'CA' },
+    ];
+    await canvas.updateField(1, { options });
+    expect(canvas.fields[0].options).toEqual(options);
+    expect(wbChangeSpy).toHaveBeenCalled();
+  });
+
+  it('renders a select preview that forwards options to wb-form-field', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    const options = [{ key: 'a', label: 'A' }];
+    await canvas.importState([{ id: 1, type: 'select', label: 'Country', options }]);
+    await waitForChanges();
+    const field = root.shadowRoot!.querySelector('wb-form-field') as any;
+    expect(field).not.toBeNull();
+    expect(field.options).toEqual(options);
+    expect(field.getAttribute('type')).toBe('select');
+  });
+
   it('updateField applies a columns patch to a nested row container', async () => {
     const { instance } = await render(<wb-canvas></wb-canvas>);
     const canvas = instance as any;

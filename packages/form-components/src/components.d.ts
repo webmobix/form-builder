@@ -57,6 +57,10 @@ export namespace Components {
          */
         "name": string;
         /**
+          * Ordered list of selectable choices rendered as `<option>` children for `type="select"`.
+         */
+        "options"?: { key: string; label: string }[];
+        /**
           * Muted helper text shown while a richtext editor is empty (richtext only).
          */
         "placeholder"?: string;
@@ -259,6 +263,10 @@ declare namespace LocalJSX {
           * JSON Pointer path used as the form-submission key, e.g. "personal.email"
          */
         "name": string;
+        /**
+          * Ordered list of selectable choices rendered as `<option>` children for `type="select"`.
+         */
+        "options"?: { key: string; label: string }[];
         /**
           * Muted helper text shown while a richtext editor is empty (richtext only).
          */

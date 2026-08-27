@@ -45,6 +45,19 @@
   field-sizing: content;
 }
 
+.wb-field__select {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-sizing: border-box;
+  background: #fff;
+  /* Reset native macOS styling so padding applies consistently */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .wb-field--checkbox {
   display: flex;
   align-items: center;
@@ -54,7 +67,8 @@
 /* Disabled controls keep their normal enabled appearance (no browser graying)
    so canvas previews look identical to the live form. */
 .wb-field input:disabled,
-.wb-field textarea:disabled {
+.wb-field textarea:disabled,
+.wb-field select:disabled {
   opacity: 1;
   color: inherit;
   background: #fff;
