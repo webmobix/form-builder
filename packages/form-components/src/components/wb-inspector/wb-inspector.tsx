@@ -47,6 +47,7 @@ export class WbInspector {
   @State() private labelError = '';
 
   @Event() wbFieldUpdated: EventEmitter<{ id: number; patch: Partial<FieldMeta> }>;
+  @Event() wbInspectDelete: EventEmitter<{ id: number }>;
 
   @Method()
   async setField(field: FieldMeta | null) {
@@ -156,6 +157,15 @@ export class WbInspector {
     this.updateOptions(options);
   };
 
+  /**
+   * Signal delete intent for the selected field. The inspector never mutates
+   * canvas state; the host orchestrator forwards this to `canvas.removeField`.
+   */
+  private onDeleteClick = () => {
+    if (!this.localField) return;
+    this.wbInspectDelete.emit({ id: this.localField.id });
+  };
+
   render() {
     if (!this.localField) {
       return (
@@ -195,6 +205,10 @@ export class WbInspector {
               <input class="input" type="number" min="1" max="4" value={f.columns ?? 2} onInput={this.onColumnsInput} />
             </label>
           )}
+
+          <button type="button" class="delete-btn" onClick={this.onDeleteClick}>
+            Delete
+          </button>
         </div>
       );
     }
@@ -292,6 +306,10 @@ export class WbInspector {
             </label>
           </div>
         )}
+
+        <button type="button" class="delete-btn" onClick={this.onDeleteClick}>
+          Delete
+        </button>
       </div>
     );
   }

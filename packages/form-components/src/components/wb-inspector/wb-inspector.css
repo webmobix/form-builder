@@ -153,3 +153,21 @@ textarea.input {
   border-color: #2f6fed;
   color: #2f6fed;
 }
+
+.delete-btn {
+  align-self: flex-start;
+  border: 1px solid #e53e3e;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  background: #fff;
+  color: #e53e3e;
+  cursor: pointer;
+}
+
+.delete-btn:hover,
+.delete-btn:focus-visible {
+  background: #fef2f2;
+  outline: none;
+  box-shadow: 0 0 0 1px #e53e3e;
+}

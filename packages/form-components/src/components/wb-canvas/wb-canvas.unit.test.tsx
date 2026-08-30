@@ -333,6 +333,105 @@ describe('wb-canvas selection and update API', () => {
   });
 });
 
+describe('wb-canvas removeField', () => {
+  const nestedRowState = () =>
+    [
+      {
+        id: 2,
+        kind: 'design',
+        type: 'text',
+        label: 'Outer row',
+        designType: 'row',
+        columns: 1,
+        children: [[{ id: 3, kind: 'design', type: 'text', label: 'Inner row', designType: 'row', columns: 2, children: [[{ id: 4, type: 'text', label: 'Heading' }], []] }]],
+      },
+    ] as any[];
+
+  it('removes a nested row container and its subtree', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(nestedRowState());
+    await canvas.removeField(3);
+    const outer = canvas.fields[0];
+    expect(outer.children[0]).toHaveLength(0);
+  });
+
+  it('deselects when the removed nested container held the selection', async () => {
+    const { root, instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(nestedRowState());
+    await canvas.selectField(4);
+    const deselectedSpy = vi.fn();
+    const removedSpy = vi.fn();
+    const changeSpy = vi.fn();
+    root.addEventListener('wbFieldDeselected', deselectedSpy);
+    root.addEventListener('wbFieldRemoved', removedSpy);
+    root.addEventListener('wbChange', changeSpy);
+    await canvas.removeField(3);
+    expect(canvas.selectedId).toBeNull();
+    expect(deselectedSpy).toHaveBeenCalled();
+    expect(removedSpy).toHaveBeenCalledWith(expect.objectContaining({ detail: { id: 3 } }));
+    expect(changeSpy).toHaveBeenCalled();
+  });
+
+  it('does not deselect when an unrelated field is selected', async () => {
+    const { root, instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([...nestedRowState(), { id: 9, type: 'text', label: 'Other' }]);
+    await canvas.selectField(9);
+    const deselectedSpy = vi.fn();
+    root.addEventListener('wbFieldDeselected', deselectedSpy);
+    await canvas.removeField(3);
+    expect(canvas.selectedId).toBe(9);
+    expect(deselectedSpy).not.toHaveBeenCalled();
+  });
+
+  it('deselects when the removed nested child held the selection', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(nestedRowState());
+    await canvas.selectField(4);
+    await canvas.removeField(4);
+    expect(canvas.selectedId).toBeNull();
+  });
+
+  it('no-op on unknown id without emitting', async () => {
+    const { root, instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(nestedRowState());
+    await canvas.selectField(4);
+    const removedSpy = vi.fn();
+    const changeSpy = vi.fn();
+    root.addEventListener('wbFieldRemoved', removedSpy);
+    root.addEventListener('wbChange', changeSpy);
+    await canvas.removeField(999);
+    expect(canvas.fields).toHaveLength(1);
+    expect(canvas.selectedId).toBe(4);
+    expect(removedSpy).not.toHaveBeenCalled();
+    expect(changeSpy).not.toHaveBeenCalled();
+  });
+
+  it('clears draggingId and dropTarget when the dragged element is removed', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(nestedRowState());
+    canvas.draggingId = 3;
+    canvas.dropTarget = { kind: 'column', containerId: 3, index: 0 };
+    await canvas.removeField(3);
+    expect(canvas.draggingId).toBeNull();
+    expect(canvas.dropTarget).toBeNull();
+  });
+
+  it('importState with NaN nextId does not poison the id counter', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState({ fields: nestedRowState(), nextId: Number.NaN });
+    await canvas.commitExternalInsert('text', 'Fresh');
+    const fresh = canvas.fields.find((f: FieldMeta) => f.label === 'Fresh');
+    expect(Number.isFinite(fresh.id)).toBe(true);
+  });
+});
+
 describe('wb-canvas importState', () => {
   it('importing a two-field payload renders both rows and emits wbChange', async () => {
     const { root, instance } = await render(<wb-canvas></wb-canvas>);

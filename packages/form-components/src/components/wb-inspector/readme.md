@@ -27,9 +27,10 @@ The inspector fills `100%` of its host's width and does not enforce a minimum wi
 
 ## Events
 
-| Event            | Description | Type                                                      |
-| ---------------- | ----------- | --------------------------------------------------------- |
-| `wbFieldUpdated` |             | `CustomEvent<{ id: number; patch: Partial<FieldMeta>; }>` |
+| Event             | Description | Type                                                      |
+| ----------------- | ----------- | --------------------------------------------------------- |
+| `wbFieldUpdated`  |             | `CustomEvent<{ id: number; patch: Partial<FieldMeta>; }>` |
+| `wbInspectDelete` |             | `CustomEvent<{ id: number; }>`                            |
 
 
 ## Methods

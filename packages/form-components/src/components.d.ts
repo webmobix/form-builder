@@ -25,7 +25,15 @@ export namespace Components {
         "beginExternalDrag": () => Promise<void>;
         "cancelExternalDrag": () => Promise<void>;
         "commitExternalInsert": (type: FieldMeta["type"], label: string, subtype?: FieldSubtype, design?: { kind: "design"; designType: FieldMeta["designType"]; }) => Promise<void>;
-        "importState": (fields: FieldMeta[]) => Promise<void>;
+        /**
+          * Returns the id the next insertion will mint, without consuming it.
+         */
+        "getNextElementId": () => Promise<number>;
+        "importState": (fieldsOrState: FieldMeta[] | { fields: FieldMeta[]; nextId?: number; }) => Promise<void>;
+        /**
+          * Remove the field with `id` anywhere in the tree (top level or nested inside row-container columns). Deleting a row container removes its whole `children` subtree. No-op when no field with that id exists. Never decrements the id counter, so removed ids are never reused; the next id can be peeked via [[getNextElementId]].  Emits, in order: `wbFieldDeselected` (only when the removed id or an id inside a removed subtree was selected), `wbFieldRemoved` with `{ id }`, then `wbChange` with the updated field list.
+         */
+        "removeField": (id: number) => Promise<void>;
         "selectField": (id: number | null) => Promise<void>;
         "setExternalHoverIndex": (x: number, y: number) => Promise<void>;
         "updateField": (id: number, patch: Partial<FieldMeta>) => Promise<void>;
@@ -114,6 +122,7 @@ declare global {
         "wbFieldSelected": FieldMeta;
         "wbFieldDeselected": void;
         "wbFieldUpdated": { id: number; patch: Partial<FieldMeta> };
+        "wbFieldRemoved": { id: number };
     }
     /**
      * Reorderable field list. Ported from the standalone touch-drag spike.
@@ -172,6 +181,7 @@ declare global {
     };
     interface HTMLWbInspectorElementEventMap {
         "wbFieldUpdated": { id: number; patch: Partial<FieldMeta> };
+        "wbInspectDelete": { id: number };
     }
     interface HTMLWbInspectorElement extends Components.WbInspector, HTMLStencilElement {
         addEventListener<K extends keyof HTMLWbInspectorElementEventMap>(type: K, listener: (this: HTMLWbInspectorElement, ev: WbInspectorCustomEvent<HTMLWbInspectorElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
@@ -230,6 +240,7 @@ declare namespace LocalJSX {
     interface WbCanvas {
         "onWbChange"?: (event: WbCanvasCustomEvent<FieldMeta[]>) => void;
         "onWbFieldDeselected"?: (event: WbCanvasCustomEvent<void>) => void;
+        "onWbFieldRemoved"?: (event: WbCanvasCustomEvent<{ id: number }>) => void;
         "onWbFieldSelected"?: (event: WbCanvasCustomEvent<FieldMeta>) => void;
         "onWbFieldUpdated"?: (event: WbCanvasCustomEvent<{ id: number; patch: Partial<FieldMeta> }>) => void;
     }
@@ -295,6 +306,7 @@ declare namespace LocalJSX {
          */
         "field"?: FieldMeta | null;
         "onWbFieldUpdated"?: (event: WbInspectorCustomEvent<{ id: number; patch: Partial<FieldMeta> }>) => void;
+        "onWbInspectDelete"?: (event: WbInspectorCustomEvent<{ id: number }>) => void;
     }
     interface WbPalette {
         "onWbAddField"?: (event: WbPaletteCustomEvent<FieldTypeDef>) => void;

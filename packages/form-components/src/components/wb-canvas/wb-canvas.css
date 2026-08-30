@@ -104,6 +104,50 @@
   display: inline-block;
 }
 
+/* ---- remove overlay button (revealed on hover/selection) -------------- */
+
+.remove-btn {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  z-index: 4;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #cfcfca;
+  color: #999;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* Type tag shifts left to share the chrome row with the remove button. */
+.canvas-element:hover .type-tag,
+.canvas-element.selected .type-tag {
+  right: 18px;
+}
+
+.canvas-element:hover .remove-btn,
+.canvas-element.selected .remove-btn {
+  display: inline-flex;
+}
+
+.remove-btn:hover,
+.remove-btn:focus-visible {
+  color: var(--wb-canvas-remove-color, #e53e3e);
+  border-color: var(--wb-canvas-remove-color, #e53e3e);
+  background: #fef2f2;
+  outline: none;
+}
+
 /* ---- element body ----------------------------------------------------- */
 
 .element-body {

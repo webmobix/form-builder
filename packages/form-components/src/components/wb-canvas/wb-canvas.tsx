@@ -36,6 +36,7 @@ export class WbCanvas {
   @Event() wbFieldSelected: EventEmitter<FieldMeta>;
   @Event() wbFieldDeselected: EventEmitter<void>;
   @Event() wbFieldUpdated: EventEmitter<{ id: number; patch: Partial<FieldMeta> }>;
+  @Event() wbFieldRemoved: EventEmitter<{ id: number }>;
 
   private listEl?: HTMLDivElement;
   private ghostEl?: HTMLDivElement;
@@ -97,7 +98,9 @@ export class WbCanvas {
   }
 
   @Method()
-  async importState(fields: FieldMeta[]): Promise<void> {
+  async importState(fieldsOrState: FieldMeta[] | { fields: FieldMeta[]; nextId?: number }): Promise<void> {
+    const fields = Array.isArray(fieldsOrState) ? fieldsOrState : fieldsOrState?.fields;
+    const nextId = !Array.isArray(fieldsOrState) ? fieldsOrState?.nextId : undefined;
     if (!Array.isArray(fields)) return;
     const normalized: FieldMeta[] = [];
     for (const f of fields) {
@@ -121,9 +124,7 @@ export class WbCanvas {
       this.wbFieldDeselected.emit();
     }
     this.fields = normalized;
-    if (normalized.length > 0) {
-      uid = Math.max(...normalized.map(f => f.id), uid);
-    }
+    uid = Math.max(uid, this.maxFieldIdDeep(normalized), (Number.isFinite(nextId) ? nextId : 1) - 1);
     this.wbChange.emit(this.fields);
   }
 
@@ -138,6 +139,101 @@ export class WbCanvas {
     this.fields = [...this.fields];
     this.wbFieldUpdated.emit({ id, patch });
     this.wbChange.emit(this.fields);
+  }
+
+  /**
+   * Remove the field with `id` anywhere in the tree (top level or nested
+   * inside row-container columns). Deleting a row container removes its whole
+   * `children` subtree. No-op when no field with that id exists. Never
+   * decrements the id counter, so removed ids are never reused; the next id
+   * can be peeked via [[getNextElementId]].
+   *
+   * Emits, in order: `wbFieldDeselected` (only when the removed id or an id
+   * inside a removed subtree was selected), `wbFieldRemoved` with `{ id }`,
+   * then `wbChange` with the updated field list.
+   */
+  @Method()
+  async removeField(id: number) {
+    // Selection is cleared when the removed element itself was selected OR
+    // when it lived inside a container subtree being removed wholesale.
+    const selectionCleared = this.selectedId !== null && (this.selectedId === id || this.subtreeContains(this.fields, id, this.selectedId));
+    if (!this.removeFieldFromTree(this.fields, id)) return;
+    this.fields = [...this.fields];
+    if (this.draggingId === id) this.draggingId = null;
+    if (this.dropTarget?.kind === 'column' && this.dropTarget.containerId === id) this.dropTarget = null;
+    this.hoverIndex = null;
+    if (selectionCleared) {
+      this.selectedId = null;
+      this.wbFieldDeselected.emit();
+    }
+    this.wbFieldRemoved.emit({ id });
+    this.wbChange.emit(this.fields);
+  }
+
+  /** True when `findId` is a field inside the (sub)tree rooted at the field with `rootId`, including the root itself. */
+  private subtreeContains(fields: FieldMeta[], rootId: number, findId: number): boolean {
+    for (const f of fields) {
+      if (f.id === rootId) return this.elementContains(f, findId);
+      if (f.designType === 'row' && f.children) {
+        for (const col of f.children) {
+          if (this.subtreeContains(col, rootId, findId)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /** True when the subtree rooted at `field` contains a field with `id`. */
+  private elementContains(field: FieldMeta, id: number): boolean {
+    if (field.id === id) return true;
+    if (field.children) {
+      for (const col of field.children) {
+        if (col.some(c => this.elementContains(c, id))) return true;
+      }
+    }
+    return false;
+  }
+
+  /** Highest id in `fields`, walking nested row-container `children` columns. 0 when empty. */
+  private maxFieldIdDeep(fields: FieldMeta[]): number {
+    let max = 0;
+    for (const f of fields) {
+      max = Math.max(max, f.id);
+      if (f.children) {
+        for (const col of f.children) {
+          max = Math.max(max, this.maxFieldIdDeep(col));
+        }
+      }
+    }
+    return max;
+  }
+
+  /**
+   * Remove the field with `id` from `fields` (top level) or from any row
+   * container's `children` columns. Returns true if a field was removed,
+   * false otherwise. Mutates the array structure it is given (caller re-sets
+   * state). Mirrors [[applyFieldPatch]]'s recursive walk.
+   */
+  private removeFieldFromTree(fields: FieldMeta[], id: number): boolean {
+    const idx = fields.findIndex(f => f.id === id);
+    if (idx !== -1) {
+      fields.splice(idx, 1);
+      return true;
+    }
+    for (const f of fields) {
+      if (f.designType === 'row' && f.children) {
+        for (const col of f.children) {
+          if (this.removeFieldFromTree(col, id)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /** Returns the id the next insertion will mint, without consuming it. */
+  @Method()
+  async getNextElementId(): Promise<number> {
+    return uid + 1;
   }
 
   /**
@@ -315,6 +411,9 @@ export class WbCanvas {
 
   private onElementKeyDown = (f: FieldMeta, e: KeyboardEvent) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
+    // The remove button is a real button that handles its own keys; never
+    // let it double-fire element selection.
+    if ((e.target as HTMLElement).closest('[data-remove-id]')) return;
     e.preventDefault();
     this.selectedId = f.id;
     this.wbFieldSelected.emit(f);
@@ -344,11 +443,29 @@ export class WbCanvas {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     const target = e.target as HTMLElement;
     if (target.closest('[data-element-id]')) return;
+    if (target.closest('[data-remove-id]')) return;
     e.preventDefault();
     if (this.selectedId !== null) {
       this.selectedId = null;
       this.wbFieldDeselected.emit();
     }
+  };
+
+  private onRemoveClick = (id: number, e: MouseEvent) => {
+    e.stopPropagation();
+    this.removeField(id);
+  };
+
+  private onRemovePointerDown = (e: PointerEvent) => {
+    // Keep the remove press from starting a grip/element drag.
+    e.stopPropagation();
+  };
+
+  private onRemoveKeyDown = (id: number, e: KeyboardEvent) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.stopPropagation();
+    e.preventDefault();
+    this.removeField(id);
   };
 
   private startDrag = (field: FieldMeta, e: PointerEvent) => {
@@ -512,6 +629,18 @@ export class WbCanvas {
           </svg>
         </span>
         <span class="type-tag">{this.rowTypeLabel(f)}</span>
+        <button
+          type="button"
+          class="remove-btn"
+          title="Delete"
+          aria-label="Delete element"
+          data-remove-id={f.id}
+          onClick={e => this.onRemoveClick(f.id, e)}
+          onPointerDown={this.onRemovePointerDown}
+          onKeyDown={e => this.onRemoveKeyDown(f.id, e)}
+        >
+          ×
+        </button>
         <div class="element-body">{body}</div>
       </div>
     );

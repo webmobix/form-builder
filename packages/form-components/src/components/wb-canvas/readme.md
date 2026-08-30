@@ -22,6 +22,7 @@ key stays stable across the reorder.
 | ------------------- | ----------- | --------------------------------------------------------- |
 | `wbChange`          |             | `CustomEvent<FieldMeta[]>`                                |
 | `wbFieldDeselected` |             | `CustomEvent<void>`                                       |
+| `wbFieldRemoved`    |             | `CustomEvent<{ id: number; }>`                            |
 | `wbFieldSelected`   |             | `CustomEvent<FieldMeta>`                                  |
 | `wbFieldUpdated`    |             | `CustomEvent<{ id: number; patch: Partial<FieldMeta>; }>` |
 
@@ -105,15 +106,49 @@ Type: `Promise<void>`
 
 
 
-### `importState(fields: FieldMeta[]) => Promise<void>`
+### `getNextElementId() => Promise<number>`
+
+Returns the id the next insertion will mint, without consuming it.
+
+#### Returns
+
+Type: `Promise<number>`
+
+
+
+### `importState(fieldsOrState: FieldMeta[] | { fields: FieldMeta[]; nextId?: number; }) => Promise<void>`
 
 
 
 #### Parameters
 
-| Name     | Type          | Description |
-| -------- | ------------- | ----------- |
-| `fields` | `FieldMeta[]` |             |
+| Name            | Type                                                       | Description |
+| --------------- | ---------------------------------------------------------- | ----------- |
+| `fieldsOrState` | `FieldMeta[] \| { fields: FieldMeta[]; nextId?: number; }` |             |
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `removeField(id: number) => Promise<void>`
+
+Remove the field with `id` anywhere in the tree (top level or nested
+inside row-container columns). Deleting a row container removes its whole
+`children` subtree. No-op when no field with that id exists. Never
+decrements the id counter, so removed ids are never reused; the next id
+can be peeked via [[getNextElementId]].
+
+Emits, in order: `wbFieldDeselected` (only when the removed id or an id
+inside a removed subtree was selected), `wbFieldRemoved` with `{ id }`,
+then `wbChange` with the updated field list.
+
+#### Parameters
+
+| Name | Type     | Description |
+| ---- | -------- | ----------- |
+| `id` | `number` |             |
 
 #### Returns
 

@@ -63,7 +63,7 @@
         <li><strong>Select &amp; edit:</strong> selecting a row emits <code>wbFieldSelected</code>; the script records the id and calls <code>inspector.setField(field)</code>. Clearing the selection emits <code>wbFieldDeselected</code> → <code>inspector.setField(null)</code>.</li>
         <li><strong>Apply edits:</strong> the inspector emits <code>wbFieldUpdated</code> with <code>{ id, patch }</code>; the script calls <code>canvas.updateField(id, patch)</code>, which applies it (even nested in a row) and re-emits <code>wbChange</code>.</li>
         <li><strong>Submit:</strong> the renderer emits <code>wbSubmit</code> with the form data as <code>Record&lt;string, string&gt;</code>, displayed in the payload panel.</li>
-        <li><strong>Import / export:</strong> <code>dump-builder</code> shows the stored payload; <code>export-json</code> downloads it; <code>load-into-canvas</code> parses the textarea/file and calls <code>canvas.importState(parsed)</code>, which replaces the canvas state and re-emits <code>wbChange</code>.</li>
+        <li><strong>Import / export:</strong> <code>dump-builder</code> shows the stored payload; <code>export-json</code> downloads it; both persist <code>{ fields, nextId }</code> (<code>nextId</code> from <code>canvas.getNextElementId()</code>, so ids freed by deletions are never reused); <code>load-into-canvas</code> parses the textarea/file and calls <code>canvas.importState({ fields: parsed.fields ?? parsed, nextId: parsed.nextId })</code>, tolerant of both wrapped and legacy bare-array shapes.</li>
       </ol>
     </div>
 
@@ -182,6 +182,16 @@
         canvas.updateField(e.detail.id, e.detail.patch);
       });
 
+      // ---- inspector → canvas: delete the selected element ----
+      // The inspector only signals intent (wbInspectDelete with the selected
+      // id); the canvas owns state, so we forward to canvas.removeField(id).
+      // Deletion clears the canvas selection, whose wbFieldDeselected handler
+      // above already calls inspector.setField(null) — the panel empties and
+      // the flow closes without any extra wiring here.
+      inspector.addEventListener('wbInspectDelete', (e) => {
+        canvas.removeField(e.detail.id);
+      });
+
       // ---- renderer → page: form submitted ----
       // wbSubmit carries the serialized form as Record<string, string> keyed by
       // each wb-form-field's name (the JSON Pointer path).
@@ -190,11 +200,16 @@
       });
 
       // ---- page: builder payload display / export ----
-      dumpBtn.addEventListener('click', () => {
-        out.textContent = JSON.stringify(lastBuilderPayload, null, 2);
+      // The persisted shape is { fields, nextId }: nextId is the canvas's next
+      // usable element id (see canvas.getNextElementId()). Persisting it lets a
+      // later import restore the counter above ids freed by deletions, so ids
+      // of removed elements are never reused after a save/load cycle.
+      const buildPersistedState = async () => ({ fields: lastBuilderPayload ?? [], nextId: await canvas.getNextElementId() });
+      dumpBtn.addEventListener('click', async () => {
+        out.textContent = JSON.stringify(await buildPersistedState(), null, 2);
       });
-      exportBtn.addEventListener('click', () => {
-        const blob = new Blob([JSON.stringify(lastBuilderPayload, null, 2)], { type: 'application/json' });
+      exportBtn.addEventListener('click', async () => {
+        const blob = new Blob([JSON.stringify(await buildPersistedState(), null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -204,9 +219,10 @@
       });
 
       // ---- page → canvas: load persisted state ----
-      // Reads JSON from the file input (or the textarea), parses it, and hands it
-      // to canvas.importState(parsed), which normalizes the FieldMeta[] and
-      // re-emits wbChange so the renderer updates too.
+      // Reads JSON from the file input (or the textarea), parses it, and hands
+      // it to canvas.importState(), which normalizes the FieldMeta[] and
+      // re-emits wbChange so the renderer updates too. Tolerant of both the
+      // persisted { fields, nextId } shape and a legacy bare FieldMeta[].
       loadBtn.addEventListener('click', async () => {
         let raw;
         try {
@@ -217,7 +233,7 @@
             raw = importInput.value;
           }
           const parsed = JSON.parse(raw);
-          await canvas.importState(parsed);
+          await canvas.importState({ fields: parsed?.fields ?? parsed, nextId: parsed?.nextId });
         } catch (err) {
           out.textContent = `Error loading into canvas: ${err?.message ? err.message : String(err)}`;
         }
