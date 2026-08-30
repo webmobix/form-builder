@@ -6,6 +6,61 @@ import type { FieldMeta } from '../../core';
 // Importing the source file triggers the on-the-fly compile + customElements.define()
 import './wb-canvas';
 
+/** Point events carry coordinates; mock-doc needs them defined explicitly. */
+function createPointerEvent(type: string, init: Partial<PointerEventInit> = {}): Event {
+  const event = new Event(type, { bubbles: true });
+  Object.defineProperties(event, {
+    pointerId: { value: init.pointerId ?? 1 },
+    clientX: { value: init.clientX ?? 0 },
+    clientY: { value: init.clientY ?? 0 },
+  });
+  return event;
+}
+
+function rect(top: number, bottom: number, left = 0, right = 200): DOMRect {
+  return { top, bottom, left, right, width: right - left, height: bottom - top, x: left, y: top } as DOMRect;
+}
+
+/**
+ * Realistic list rect with `rows` stacked rows of `height` each: the list
+ * box and every top-level `[data-element-id]` row gets a matching rect.
+ */
+function stubLayout(canvas: any, rows: number, height = 60) {
+  vi.spyOn(canvas.listEl, 'getBoundingClientRect').mockReturnValue(rect(0, rows * height));
+  const rowEls = Array.from(canvas.listEl.querySelectorAll('[data-element-id]')) as HTMLElement[];
+  rowEls.forEach((el, i) => {
+    vi.spyOn(el, 'getBoundingClientRect').mockReturnValue(rect(i * height, (i + 1) * height, 0, 400));
+  });
+}
+
+/**
+ * Stub rects for a row container so computeColumnDropTarget can hit-test it:
+ * container box, per-column boxes, and per-child boxes inside each column.
+ */
+function stubContainerLayout(
+  canvas: any,
+  containerId: number,
+  cols: Array<{ left: number; right: number; top: number; bottom: number; children?: Array<{ id: number; top: number; bottom: number }> }>,
+) {
+  const containerEl = (canvas.listEl as HTMLElement).querySelector(`[data-container-id="${containerId}"]`) as HTMLElement;
+  if (!containerEl) throw new Error(`container ${containerId} not rendered`);
+  const top = Math.min(...cols.map(c => c.top));
+  const bottom = Math.max(...cols.map(c => c.bottom));
+  const left = Math.min(...cols.map(c => c.left));
+  const right = Math.max(...cols.map(c => c.right));
+  vi.spyOn(containerEl, 'getBoundingClientRect').mockReturnValue(rect(top, bottom, left, right));
+  const columnEls = Array.from(containerEl.querySelectorAll('[data-column]')) as HTMLElement[];
+  cols.forEach((c, i) => {
+    const colEl = columnEls[i];
+    if (!colEl) return;
+    vi.spyOn(colEl, 'getBoundingClientRect').mockReturnValue(rect(c.top, c.bottom, c.left, c.right));
+    for (const child of c.children ?? []) {
+      const childEl = colEl.querySelector(`[data-element-id="${child.id}"]`) as HTMLElement;
+      if (childEl) vi.spyOn(childEl, 'getBoundingClientRect').mockReturnValue(rect(child.top, child.bottom, c.left, c.right));
+    }
+  });
+}
+
 describe('wb-canvas external drag API', () => {
   it('beginExternalDrag sets externalDrag flag', async () => {
     const { instance } = await render(<wb-canvas></wb-canvas>);
@@ -662,19 +717,6 @@ describe('wb-canvas reorder drag indicator', () => {
     return event;
   }
 
-  function rect(top: number, bottom: number): DOMRect {
-    return { top, bottom, left: 0, right: 400, width: 400, height: bottom - top, x: 0, y: top } as DOMRect;
-  }
-
-  /** Realistic list rect with `rows` stacked rows of `height` each. */
-  function stubLayout(canvas: any, rows: number, height = 60) {
-    vi.spyOn(canvas.listEl, 'getBoundingClientRect').mockReturnValue(rect(0, rows * height));
-    const rowEls = Array.from(canvas.listEl.querySelectorAll('[data-element-id]')) as HTMLElement[];
-    rowEls.forEach((el, i) => {
-      vi.spyOn(el, 'getBoundingClientRect').mockReturnValue(rect(i * height, (i + 1) * height));
-    });
-  }
-
   /** Start a grip drag and return listeners for driving the drag manually. */
   async function startGripDrag(root: any) {
     const grip = root.shadowRoot!.querySelector('.grip') as HTMLElement;
@@ -825,6 +867,430 @@ describe('wb-canvas reorder drag indicator', () => {
     expect(wbChangeSpy).not.toHaveBeenCalled();
     expect(canvas.dropTarget).toBeNull();
     expect(canvas.hoverIndex).toBeNull();
+    expect(canvas.draggingId).toBeNull();
+  });
+});
+
+describe('wb-canvas nested-element drags', () => {
+  /** Row container with a child in column 0. */
+  const rowState = () =>
+    [
+      { id: 1, type: 'text', label: 'Top' },
+      {
+        id: 2,
+        kind: 'design',
+        type: 'text',
+        label: 'Row',
+        designType: 'row',
+        columns: 2,
+        children: [[{ id: 3, type: 'text', label: 'ChildA' }], [{ id: 4, type: 'text', label: 'ChildB' }]],
+      },
+    ] as any[];
+
+  it('nested child grip pointerdown sets draggingId and creates a ghost', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(rowState());
+    await waitForChanges();
+    const grips = root.shadowRoot!.querySelectorAll('.grip');
+    expect(grips.length).toBeGreaterThanOrEqual(3); // top-level + row + child
+    const childGrip = root.shadowRoot!.querySelector('[data-element-id="3"] .grip') as HTMLElement;
+    const startDragSpy = vi.spyOn(canvas, 'startDrag');
+    (childGrip as any).setPointerCapture = vi.fn();
+    childGrip.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 10, clientY: 350 }));
+    expect(canvas.selectedId).toBe(3);
+    expect(startDragSpy).toHaveBeenCalled();
+    expect(canvas.draggingId).toBe(3);
+    const ghost = document.body.querySelector('div[style*="pointer-events: none"]') || document.body.querySelector('div[style*="pointer-events:none"]');
+    expect(ghost).not.toBeNull();
+    expect(ghost!.textContent).toBe('ChildA');
+  });
+
+  it('commitDrop clears drag state for a nested child drag', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(rowState());
+    await waitForChanges();
+    const childGrip = root.shadowRoot!.querySelector('[data-element-id="3"] .grip') as HTMLElement;
+    (childGrip as any).setPointerCapture = vi.fn();
+    childGrip.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 10, clientY: 350 }));
+    expect(canvas.draggingId).toBe(3);
+    const grip = childGrip;
+    grip.dispatchEvent(createPointerEvent('pointerup', { pointerId: 1, clientY: 350 }));
+    await waitForChanges();
+    expect(canvas.draggingId).toBeNull();
+    expect(canvas.dropTarget).toBeNull();
+    expect(canvas.hoverIndex).toBeNull();
+  });
+
+  it('moving a top-level element over a container column sets a column dropTarget and no top-level indicator renders', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(rowState());
+    await waitForChanges();
+    stubLayout(canvas, 2, 120);
+    // mock-doc cannot evaluate :scope (used by getInsertionIndex); mirror the
+    // stubbed row rects: midpoints at 60/180 => index 0 / 1 / 2.
+    vi.spyOn(canvas, 'getInsertionIndex').mockImplementation((y: number) => (y < 60 ? 0 : y < 180 ? 1 : 2));
+    // Row container occupies the second top-level slot; two columns side by side.
+    stubContainerLayout(canvas, 2, [
+      { left: 0, right: 200, top: 120, bottom: 240, children: [{ id: 3, top: 120, bottom: 180 }] },
+      { left: 200, right: 400, top: 120, bottom: 240, children: [{ id: 4, top: 120, bottom: 180 }] },
+    ]);
+    const topGrip = root.shadowRoot!.querySelector('[data-element-id="1"] .grip') as HTMLElement;
+    (topGrip as any).setPointerCapture = vi.fn();
+    topGrip.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 10, clientY: 30 }));
+    topGrip.dispatchEvent(createPointerEvent('pointermove', { pointerId: 1, clientX: 100, clientY: 140 }));
+    // Pointer inside column 0, above ChildA's midpoint => column target, index 0.
+    expect(canvas.dropTarget).toEqual({ kind: 'column', containerId: 2, colIndex: 0, index: 0 });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelectorAll('.indicator')).toHaveLength(0); // no top-level line
+    expect(root.shadowRoot!.querySelectorAll('.drop-line')).toHaveLength(1);
+    expect(root.shadowRoot!.querySelectorAll('.column.drop-active')).toHaveLength(1);
+
+    // Pointer over the top-level list but not inside a container => top-level target.
+    topGrip.dispatchEvent(createPointerEvent('pointermove', { pointerId: 1, clientX: 100, clientY: 60 }));
+    expect(canvas.dropTarget).toEqual({ kind: 'top', index: 1 });
+    expect(canvas.hoverIndex).toBe(1);
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelectorAll('.indicator')).toHaveLength(1);
+    expect(root.shadowRoot!.querySelectorAll('.drop-line')).toHaveLength(0);
+
+    // Pointer outside the list entirely => no indicator at all.
+    topGrip.dispatchEvent(createPointerEvent('pointermove', { pointerId: 1, clientX: 100, clientY: 300 }));
+    expect(canvas.dropTarget).toBeNull();
+    expect(canvas.hoverIndex).toBeNull();
+  });
+
+  it('dragging a row container over a container nested in its own subtree shows no column target', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    // Outer row (id 2) contains inner row (id 3) in column 0; inner has a child (id 4).
+    await canvas.importState([
+      { id: 1, type: 'text', label: 'Top' },
+      {
+        id: 2,
+        kind: 'design',
+        type: 'text',
+        label: 'Outer',
+        designType: 'row',
+        columns: 2,
+        children: [[{ id: 3, kind: 'design', type: 'text', label: 'Inner', designType: 'row', columns: 2, children: [[{ id: 4, type: 'text', label: 'Leaf' }], []] }], []],
+      },
+    ]);
+    await waitForChanges();
+    vi.spyOn(canvas.listEl, 'getBoundingClientRect').mockReturnValue(rect(0, 480, 0, 400));
+    // mock-doc cannot evaluate :scope; the fixed top-level index is enough to
+    // prove the internal drag fell back to the top-level path.
+    vi.spyOn(canvas, 'getInsertionIndex').mockReturnValue(1);
+    stubContainerLayout(canvas, 2, [
+      { left: 0, right: 200, top: 120, bottom: 360, children: [{ id: 3, top: 120, bottom: 240 }] },
+      { left: 200, right: 400, top: 120, bottom: 360 },
+    ]);
+    stubContainerLayout(canvas, 3, [
+      { left: 0, right: 100, top: 150, bottom: 240, children: [{ id: 4, top: 150, bottom: 200 }] },
+      { left: 100, right: 200, top: 150, bottom: 240 },
+    ]);
+    const outerGrip = root.shadowRoot!.querySelector('[data-element-id="2"] .grip') as HTMLElement;
+    (outerGrip as any).setPointerCapture = vi.fn();
+    outerGrip.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 10, clientY: 150 }));
+    // Hovering the inner container's area resolves to the outer container's
+    // column (dom-order hit test) — which is inside the dragged element's
+    // subtree, so the cycle guard rejects it and the top-level target applies.
+    outerGrip.dispatchEvent(createPointerEvent('pointermove', { pointerId: 1, clientX: 50, clientY: 180 }));
+    expect(canvas.dropTarget).toEqual({ kind: 'top', index: 1 });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelectorAll('.column.drop-active')).toHaveLength(0);
+    expect(root.shadowRoot!.querySelectorAll('.drop-line')).toHaveLength(0);
+    expect(root.shadowRoot!.querySelectorAll('.indicator')).toHaveLength(1);
+    outerGrip.dispatchEvent(createPointerEvent('pointerup', { pointerId: 1, clientY: 180 }));
+    await waitForChanges();
+    expect(canvas.draggingId).toBeNull();
+    expect(canvas.dropTarget).toBeNull();
+  });
+
+  it('a non-container dragged over a nested container targets the enclosing outer column like palette drags', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      { id: 1, type: 'text', label: 'Top' },
+      {
+        id: 2,
+        kind: 'design',
+        type: 'text',
+        label: 'Outer',
+        designType: 'row',
+        columns: 2,
+        children: [[{ id: 3, kind: 'design', type: 'text', label: 'Inner', designType: 'row', columns: 2, children: [[{ id: 4, type: 'text', label: 'Leaf' }], []] }], []],
+      },
+    ]);
+    await waitForChanges();
+    vi.spyOn(canvas.listEl, 'getBoundingClientRect').mockReturnValue(rect(0, 480, 0, 400));
+    stubContainerLayout(canvas, 2, [
+      { left: 0, right: 200, top: 120, bottom: 360, children: [{ id: 3, top: 120, bottom: 240 }] },
+      { left: 200, right: 400, top: 120, bottom: 360 },
+    ]);
+    const topGrip = root.shadowRoot!.querySelector('[data-element-id="1"] .grip') as HTMLElement;
+    (topGrip as any).setPointerCapture = vi.fn();
+    topGrip.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 10, clientY: 30 }));
+    // Pointer over the inner container's area but above its children's
+    // midpoints: the outermost enclosing container (outer row, id 2) is the
+    // column target, mirroring palette drags.
+    topGrip.dispatchEvent(createPointerEvent('pointermove', { pointerId: 1, clientX: 50, clientY: 140 }));
+    expect(canvas.dropTarget).toEqual({ kind: 'column', containerId: 2, colIndex: 0, index: 0 });
+    await waitForChanges();
+  });
+
+  /** Drive a grip drag through move + drop and return the grip element. */
+  async function dragAndDrop(
+    root: any,
+    canvas: any,
+    gripSelector: string,
+    move: { clientX: number; clientY: number },
+    opts: { dropTarget?: any; drop?: { clientX: number; clientY: number } } = {},
+  ) {
+    const grip = root.shadowRoot!.querySelector(gripSelector) as HTMLElement;
+    (grip as any).setPointerCapture = vi.fn();
+    grip.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 10, clientY: 30 }));
+    grip.dispatchEvent(createPointerEvent('pointermove', { pointerId: 1, clientX: move.clientX, clientY: move.clientY }));
+    if (opts.dropTarget) {
+      // onMove always sets these together for top-level targets; commitDrop
+      // reads hoverIndex on the top path, so mirror that pairing here.
+      canvas.dropTarget = opts.dropTarget;
+      if (opts.dropTarget.kind === 'top') canvas.hoverIndex = opts.dropTarget.index;
+    }
+    grip.dispatchEvent(createPointerEvent('pointerup', { pointerId: 1, clientX: opts.drop?.clientX ?? move.clientX, clientY: opts.drop?.clientY ?? move.clientY }));
+    return grip;
+  }
+
+  it('commitDrop moves a top-level element into a targeted column, keeping its id, and emits wbChange', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(rowState());
+    await waitForChanges();
+    const wbChangeSpy = vi.fn();
+    root.addEventListener('wbChange', wbChangeSpy);
+    const originalId = canvas.fields[0].id; // 'Top' field, id 1
+    stubLayout(canvas, 2, 120);
+    stubContainerLayout(canvas, 2, [
+      { left: 0, right: 200, top: 120, bottom: 240, children: [{ id: 3, top: 120, bottom: 180 }] },
+      { left: 200, right: 400, top: 120, bottom: 240, children: [{ id: 4, top: 120, bottom: 180 }] },
+    ]);
+    await dragAndDrop(
+      root,
+      canvas,
+      '[data-element-id="1"] .grip',
+      { clientX: 100, clientY: 140 },
+      {
+        dropTarget: { kind: 'column', containerId: 2, colIndex: 1, index: 1 },
+      },
+    );
+    await waitForChanges();
+    expect(wbChangeSpy).toHaveBeenCalled();
+    const row = canvas.fields.find((f: FieldMeta) => f.id === 2);
+    expect(row.children[0].map((c: FieldMeta) => c.id)).toEqual([3]);
+    expect(row.children[1].map((c: FieldMeta) => c.id)).toEqual([4, 1]); // inserted after ChildB
+    expect(row.children[1][1].id).toBe(originalId); // identity preserved
+    expect(row.children[1][1].label).toBe('Top');
+    // No new uid was minted for the move.
+    const nextId = await canvas.getNextElementId();
+    expect(nextId).toBeGreaterThan(4);
+    expect(canvas.draggingId).toBeNull();
+    expect(canvas.dropTarget).toBeNull();
+  });
+
+  it('commitDrop moves a nested child out to the top level, keeping its id', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(rowState());
+    await waitForChanges();
+    const wbChangeSpy = vi.fn();
+    root.addEventListener('wbChange', wbChangeSpy);
+    // Drop with no active target while hovering top-level area: the
+    // internal commit falls back to the top-level path via hoverIndex.
+    vi.spyOn(canvas, 'getInsertionIndex').mockReturnValue(1);
+    await dragAndDrop(root, canvas, '[data-element-id="3"] .grip', { clientX: 100, clientY: 60 }, { dropTarget: { kind: 'top', index: 1 } });
+    await waitForChanges();
+    expect(wbChangeSpy).toHaveBeenCalled();
+    expect(canvas.fields.map((f: FieldMeta) => f.id)).toEqual([1, 3, 2]);
+    const row = canvas.fields.find((f: FieldMeta) => f.id === 2);
+    expect(row.children[0]).toHaveLength(0);
+    expect(canvas.fields[1].id).toBe(3);
+    expect(canvas.fields[1].label).toBe('ChildA');
+  });
+
+  it('commitDrop moves a child between columns of the same container', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(rowState());
+    await waitForChanges();
+    await dragAndDrop(
+      root,
+      canvas,
+      '[data-element-id="3"] .grip',
+      { clientX: 300, clientY: 150 },
+      {
+        dropTarget: { kind: 'column', containerId: 2, colIndex: 1, index: 1 }, // after ChildB
+      },
+    );
+    const row = canvas.fields.find((f: FieldMeta) => f.id === 2);
+    expect(row.children[0]).toHaveLength(0);
+    expect(row.children[1].map((c: FieldMeta) => c.id)).toEqual([4, 3]);
+    expect(row.children[1][1].id).toBe(3); // id preserved
+  });
+
+  it('commitDrop reorder within the same column (forward) shifts the target index', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      {
+        id: 2,
+        kind: 'design',
+        type: 'text',
+        label: 'Row',
+        designType: 'row',
+        columns: 1,
+        children: [
+          [
+            { id: 3, type: 'text', label: 'A' },
+            { id: 4, type: 'text', label: 'B' },
+            { id: 5, type: 'text', label: 'C' },
+          ],
+        ],
+      },
+    ]);
+    await waitForChanges();
+    // Pointer indicated index 2 (between B and C) while dragging A (index 0).
+    await dragAndDrop(
+      root,
+      canvas,
+      '[data-element-id="3"] .grip',
+      { clientX: 100, clientY: 150 },
+      {
+        dropTarget: { kind: 'column', containerId: 2, colIndex: 0, index: 2 },
+      },
+    );
+    const row = canvas.fields[0];
+    expect(row.children[0].map((c: FieldMeta) => c.id)).toEqual([4, 3, 5]);
+  });
+
+  it('commitDrop reorder within the same column (backward) keeps the target index', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      {
+        id: 2,
+        kind: 'design',
+        type: 'text',
+        label: 'Row',
+        designType: 'row',
+        columns: 1,
+        children: [
+          [
+            { id: 3, type: 'text', label: 'A' },
+            { id: 4, type: 'text', label: 'B' },
+            { id: 5, type: 'text', label: 'C' },
+          ],
+        ],
+      },
+    ]);
+    await waitForChanges();
+    // Pointer indicated index 0 while dragging C (index 2).
+    await dragAndDrop(
+      root,
+      canvas,
+      '[data-element-id="5"] .grip',
+      { clientX: 100, clientY: 40 },
+      {
+        dropTarget: { kind: 'column', containerId: 2, colIndex: 0, index: 0 },
+      },
+    );
+    const row = canvas.fields[0];
+    expect(row.children[0].map((c: FieldMeta) => c.id)).toEqual([5, 3, 4]);
+  });
+
+  it('dropping a row container over its own descendant is a no-op: no move, no wbChange', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      { id: 1, type: 'text', label: 'Top' },
+      {
+        id: 2,
+        kind: 'design',
+        type: 'text',
+        label: 'Outer',
+        designType: 'row',
+        columns: 2,
+        children: [[{ id: 3, kind: 'design', type: 'text', label: 'Inner', designType: 'row', columns: 2, children: [[{ id: 4, type: 'text', label: 'Leaf' }], []] }], []],
+      },
+    ]);
+    await waitForChanges();
+    const wbChangeSpy = vi.fn();
+    root.addEventListener('wbChange', wbChangeSpy);
+    // Force a stale/undetected column target: at commit time the only
+    // reachable container is inside the dragged element's subtree (the
+    // onMove guard rejects it), so the branch must still refuse to move.
+    await dragAndDrop(
+      root,
+      canvas,
+      '[data-element-id="2"] .grip',
+      { clientX: 50, clientY: 180 },
+      {
+        dropTarget: { kind: 'column', containerId: 3, colIndex: 0, index: 0 },
+      },
+    );
+    await waitForChanges();
+    expect(wbChangeSpy).not.toHaveBeenCalled();
+    expect(canvas.fields.map((f: FieldMeta) => f.id)).toEqual([1, 2]);
+    const outer = canvas.fields[1];
+    expect(outer.children[0][0].id).toBe(3);
+    expect(outer.children[0][0].children[0][0].id).toBe(4);
+    expect(canvas.draggingId).toBeNull();
+    expect(canvas.dropTarget).toBeNull();
+    expect(canvas.hoverIndex).toBeNull();
+  });
+
+  it('drop with a missing target container aborts cleanly and clears drag state', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(rowState());
+    await waitForChanges();
+    const wbChangeSpy = vi.fn();
+    root.addEventListener('wbChange', wbChangeSpy);
+    await dragAndDrop(
+      root,
+      canvas,
+      '[data-element-id="1"] .grip',
+      { clientX: 100, clientY: 140 },
+      {
+        dropTarget: { kind: 'column', containerId: 999, colIndex: 0, index: 0 },
+      },
+    );
+    await waitForChanges();
+    expect(wbChangeSpy).not.toHaveBeenCalled();
+    // The dragged element must not have been removed.
+    expect(canvas.fields.map((f: FieldMeta) => f.id)).toEqual([1, 2]);
+    expect(canvas.draggingId).toBeNull();
+    expect(canvas.dropTarget).toBeNull();
+  });
+
+  it('drop with no target leaves state unchanged', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState(rowState());
+    await waitForChanges();
+    const wbChangeSpy = vi.fn();
+    root.addEventListener('wbChange', wbChangeSpy);
+    // Hover off the list: dropTarget stays null through the whole drag.
+    const grip = root.shadowRoot!.querySelector('[data-element-id="1"] .grip') as HTMLElement;
+    (grip as any).setPointerCapture = vi.fn();
+    grip.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 10, clientY: 30 }));
+    grip.dispatchEvent(createPointerEvent('pointermove', { pointerId: 1, clientX: 100, clientY: 5000 }));
+    expect(canvas.dropTarget).toBeNull();
+    grip.dispatchEvent(createPointerEvent('pointerup', { pointerId: 1, clientX: 100, clientY: 5000 }));
+    await waitForChanges();
+    expect(wbChangeSpy).not.toHaveBeenCalled();
+    expect(canvas.fields.map((f: FieldMeta) => f.id)).toEqual([1, 2]);
     expect(canvas.draggingId).toBeNull();
   });
 });

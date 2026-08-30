@@ -236,6 +236,45 @@ export class WbCanvas {
     return uid + 1;
   }
 
+  /** Finds a field by id anywhere in the tree (top level or nested). */
+  private findFieldDeep(fields: FieldMeta[], id: number): FieldMeta | undefined {
+    for (const f of fields) {
+      if (f.id === id) return f;
+      if (f.children) {
+        for (const col of f.children) {
+          const found = this.findFieldDeep(col, id);
+          if (found) return found;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Compute the effective drop target for an internal (existing-element)
+   * drag. Column containers are first-class targets mirroring the palette
+   * flow; the cycle guard rejects containers inside the dragged element's
+   * own subtree so a row container can never be dropped into itself.
+   */
+  private resolveInternalDropTarget(x: number, y: number, draggedId: number): DropTarget {
+    const draggedField = this.findFieldDeep(this.fields, draggedId);
+    if (draggedField && draggedField.designType === 'row') {
+      const columnTarget = this.computeColumnDropTarget(x, y);
+      if (columnTarget && !this.subtreeContains(this.fields, draggedId, columnTarget.containerId)) {
+        return columnTarget;
+      }
+      return this.topLevelTarget(y);
+    }
+    const columnTarget = this.computeColumnDropTarget(x, y);
+    if (columnTarget) return columnTarget;
+    return this.topLevelTarget(y);
+  }
+
+  private topLevelTarget(y: number): Extract<DropTarget, { kind: 'top' }> {
+    const index = this.getInsertionIndex(y);
+    return { kind: 'top', index };
+  }
+
   /**
    * Apply `patch` to the field with `id` anywhere in the tree (top level or
    * nested inside row containers). Returns true if found and applied, false
@@ -308,19 +347,21 @@ export class WbCanvas {
     if (!this.listEl) return null;
     const containers = this.listEl.querySelectorAll<HTMLElement>('[data-container-id]');
     for (let ci = 0; ci < containers.length; ci++) {
-      const container = containers.item(ci);
+      // Index access instead of NodeList.item(): mock-doc's querySelectorAll
+      // returns a plain array in unit tests; real NodeLists support both.
+      const container = containers[ci];
       const cRect = container.getBoundingClientRect();
       if (y < cRect.top || y > cRect.bottom) continue;
       const containerId = Number(container.getAttribute('data-container-id'));
       const columns = container.querySelectorAll<HTMLElement>('[data-column]');
       for (let j = 0; j < columns.length; j++) {
-        const col = columns.item(j);
+        const col = columns[j];
         const colRect = col.getBoundingClientRect();
         if (x < colRect.left || x > colRect.right) continue;
         const childEls = col.querySelectorAll<HTMLElement>('[data-element-id]');
         let index = childEls.length;
         for (let k = 0; k < childEls.length; k++) {
-          const r = childEls.item(k).getBoundingClientRect();
+          const r = childEls[k].getBoundingClientRect();
           if (y < r.top + r.height / 2) {
             index = k;
             break;
@@ -423,11 +464,9 @@ export class WbCanvas {
     e.stopPropagation();
     this.selectedId = f.id;
     this.wbFieldSelected.emit(f);
-    // Only top-level fields participate in the reorder drag flow; nested
-    // children select on grip press but do not reorder.
-    if (this.fields.some(x => x.id === f.id)) {
-      this.startDrag(f, e);
-    }
+    // Any rendered element (top-level or nested inside a row-container
+    // column) participates in the drag flow; select-on-press stays.
+    this.startDrag(f, e);
   };
 
   private onWrapClick = (e: MouseEvent) => {
@@ -499,9 +538,13 @@ export class WbCanvas {
         this.hoverIndex = null;
         return;
       }
-      const index = this.getInsertionIndex(ev.clientY);
-      this.dropTarget = { kind: 'top', index };
-      this.hoverIndex = index;
+      // Column containers are first-class drop targets during internal
+      // drags, mirroring the palette flow (setExternalHoverIndex). The
+      // cycle guard (inside resolveInternalDropTarget) rejects containers
+      // nested in the dragged element's own subtree.
+      const target = this.resolveInternalDropTarget(ev.clientX, ev.clientY, field.id);
+      this.dropTarget = target;
+      this.hoverIndex = target.kind === 'top' ? target.index : null;
       this.autoScrollCheck(ev.clientY);
     };
     const onUp = () => {
@@ -665,15 +708,77 @@ export class WbCanvas {
   private commitDrop(id: number) {
     this.scrollDir = 0;
     if (this.raf) cancelAnimationFrame(this.raf);
+    const target = this.dropTarget;
+    if (target?.kind === 'column') {
+      // Move the dragged element into the targeted row column: capture it,
+      // remove it from wherever it lives, re-resolve the container from the
+      // updated tree, then insert at the recorded position. The element
+      // keeps its id (no uid increment) so consumers see a stable identity.
+      const item = this.findFieldDeep(this.fields, id);
+      if (!item) return this.clearDragState();
+      // Source column location (before removal) for the same-column index
+      // adjustment below. removeFieldFromTree splices the inner column
+      // array in place, so the index must be captured up front.
+      const sourceContainer = this.findContainerOf(this.fields, id);
+      const fields = [...this.fields];
+      const srcIdx = sourceContainer?.children?.[target.colIndex]?.findIndex(f => f.id === id) ?? -1;
+      if (!this.removeFieldFromTree(fields, id)) return this.clearDragState();
+      const container = this.findFieldDeep(fields, target.containerId);
+      if (!container) return this.clearDragState();
+      // Same-column move: the removal shifted earlier indices down by one,
+      // so compensate before splicing; clamp to bounds afterward. A move
+      // that is a no-op after adjustment still emits wbChange for
+      // consistency with the reorder path.
+      let index = target.index;
+      if (sourceContainer?.id === target.containerId && srcIdx !== -1 && srcIdx < index) {
+        index -= 1;
+      }
+      const columns = container.columns ?? defaultColumns;
+      const children = container.children ? container.children.map(col => [...col]) : Array.from({ length: columns }, () => [] as FieldMeta[]);
+      index = Math.max(0, Math.min(index, children[target.colIndex].length));
+      children[target.colIndex].splice(index, 0, item);
+      container.children = children;
+      this.fields = fields;
+      this.wbChange.emit(this.fields);
+      return this.clearDragState();
+    }
     if (this.hoverIndex !== null) {
-      const from = this.fields.findIndex(f => f.id === id);
+      const item = this.findFieldDeep(this.fields, id);
+      if (!item) return this.clearDragState();
       const next = [...this.fields];
-      const [item] = next.splice(from, 1);
-      const adj = this.hoverIndex > from ? this.hoverIndex - 1 : this.hoverIndex;
+      let adj = this.hoverIndex;
+      const from = this.fields.findIndex(f => f.id === id);
+      if (from !== -1) {
+        // Top-level source: removal shifts later indices left by one.
+        next.splice(from, 1);
+        adj = this.hoverIndex > from ? this.hoverIndex - 1 : this.hoverIndex;
+      } else {
+        // Source lives inside a container: remove it from the subtree;
+        // top-level indices are unaffected by the removal.
+        if (!this.removeFieldFromTree(next, id)) return this.clearDragState();
+      }
       next.splice(adj, 0, item);
       this.fields = next;
       this.wbChange.emit(this.fields);
     }
+    this.clearDragState();
+  }
+
+  /** The row container whose column stack directly holds the field with `id`, or undefined for top-level fields. */
+  private findContainerOf(fields: FieldMeta[], id: number): (FieldMeta & { children: FieldMeta[][] }) | undefined {
+    for (const f of fields) {
+      if (f.children) {
+        for (const col of f.children) {
+          if (col.some(c => c.id === id)) return f as FieldMeta & { children: FieldMeta[][] };
+          const nested = this.findContainerOf(col, id);
+          if (nested) return nested;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  private clearDragState() {
     if (this.ghostEl) this.ghostEl.remove();
     this.ghostEl = undefined;
     this.hoverIndex = null;
