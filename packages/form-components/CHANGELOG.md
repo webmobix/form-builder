@@ -1,5 +1,14 @@
 # @webmobix/form-components
 
+## 0.5.0
+
+### Minor Changes
+
+- 9f131f0: added new placeholde rproperty
+  can now delete fields from inside editor and inspector
+  no reuse of old field ids; increasing only
+  better drag and drop for nested fields
+
 ## 0.4.0
 
 ### Minor Changes
