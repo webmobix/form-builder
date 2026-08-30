@@ -256,12 +256,10 @@ export class WbInspector {
           </div>
         )}
 
-        {isRichtext && (
-          <label class="field-group">
-            <span class="field-label">Placeholder</span>
-            <input class="input" type="text" value={f.placeholder ?? ''} onInput={this.onPlaceholderInput} />
-          </label>
-        )}
+        <label class="field-group">
+          <span class="field-label">Placeholder</span>
+          <input class="input" type="text" value={f.placeholder ?? ''} onInput={this.onPlaceholderInput} />
+        </label>
 
         {isText && subtype === 'number' && (
           <div class="restrictions">

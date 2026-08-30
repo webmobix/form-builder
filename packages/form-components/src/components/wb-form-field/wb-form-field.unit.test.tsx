@@ -65,6 +65,63 @@ describe('wb-form-field subtype and restrictions', () => {
   });
 });
 
+describe('wb-form-field placeholder', () => {
+  it('renders placeholder as native attribute on a text input', async () => {
+    const { root } = await render(<wb-form-field name="name" type="text" label="Name" placeholder="Jane Doe"></wb-form-field>);
+    const input = root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(input.getAttribute('placeholder')).toBe('Jane Doe');
+  });
+
+  it('renders placeholder as native attribute on a textarea', async () => {
+    const { root } = await render(<wb-form-field name="notes" type="text" label="Notes" multiline placeholder="Notes…"></wb-form-field>);
+    const textarea = root.shadowRoot!.querySelector('textarea') as HTMLTextAreaElement;
+    expect(textarea.getAttribute('placeholder')).toBe('Notes…');
+  });
+
+  it('renders date placeholder as helper text below the control', async () => {
+    const { root } = await render(<wb-form-field name="dob" type="date" label="Date" placeholder="Your birthday"></wb-form-field>);
+    const hint = root.shadowRoot!.querySelector('.wb-field__placeholder-hint');
+    expect(hint).not.toBeNull();
+    expect(hint!.textContent).toBe('Your birthday');
+  });
+
+  it('renders checkbox placeholder as helper text below the label row', async () => {
+    const { root } = await render(<wb-form-field name="agree" type="checkbox" label="Agree" placeholder="Check to accept"></wb-form-field>);
+    const hint = root.shadowRoot!.querySelector('.wb-field__placeholder-hint');
+    expect(hint).not.toBeNull();
+    expect(hint!.textContent).toBe('Check to accept');
+    // label row (input + label span) and hint share one column
+    expect(hint!.parentElement!.classList.contains('wb-field--checkbox')).toBe(true);
+    expect(hint!.previousElementSibling!.querySelector('input[type="checkbox"]')).not.toBeNull();
+  });
+
+  it('links date and checkbox hints to the control via aria-describedby', async () => {
+    const dateRender = await render(<wb-form-field name="dob" type="date" label="Date" placeholder="Your birthday"></wb-form-field>);
+    const dateInput = dateRender.root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    const dateHint = dateRender.root.shadowRoot!.querySelector('.wb-field__placeholder-hint') as HTMLElement;
+    expect(dateInput.getAttribute('aria-describedby')).toBe('dob-hint');
+    expect(dateHint.id).toBe('dob-hint');
+
+    const { root } = await render(<wb-form-field name="agree" type="checkbox" label="Agree" placeholder="Check to accept"></wb-form-field>);
+    const checkbox = root.shadowRoot!.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    const hint = root.shadowRoot!.querySelector('.wb-field__placeholder-hint') as HTMLElement;
+    expect(checkbox.getAttribute('aria-describedby')).toBe('agree-hint');
+    expect(hint.id).toBe('agree-hint');
+  });
+
+  it('renders no hint markup when placeholder is unset', async () => {
+    const dateRender = await render(<wb-form-field name="dob" type="date" label="Date"></wb-form-field>);
+    expect(dateRender.root.shadowRoot!.querySelector('.wb-field__placeholder-hint')).toBeNull();
+
+    const checkboxRender = await render(<wb-form-field name="agree" type="checkbox" label="Agree"></wb-form-field>);
+    expect(checkboxRender.root.shadowRoot!.querySelector('.wb-field__placeholder-hint')).toBeNull();
+
+    const textRender = await render(<wb-form-field name="name" type="text" label="Name"></wb-form-field>);
+    const input = textRender.root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(input.hasAttribute('placeholder')).toBe(false);
+  });
+});
+
 describe('wb-form-field select', () => {
   it('renders a select (not an input) for select type', async () => {
     const { root } = await render(
@@ -108,6 +165,127 @@ describe('wb-form-field select', () => {
     const select = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
     expect(select).not.toBeNull();
     expect(select.querySelectorAll('option').length).toBe(0);
+  });
+
+  it('renders a disabled hint option first when placeholder is set, selected by default', async () => {
+    const { root } = await render(
+      <wb-form-field
+        name="country"
+        type="select"
+        label="Country"
+        placeholder="Choose one"
+        options={[
+          { key: 'red', label: 'Red' },
+          { key: 'green', label: 'Green' },
+        ]}
+      ></wb-form-field>,
+    );
+    const select = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
+    const options = Array.from(select.querySelectorAll('option'));
+    expect(options.length).toBe(3);
+    const first = options[0];
+    // Sentinel value keeps the hint distinct from real options, even
+    // author-created options with an empty key.
+    expect(first.getAttribute('value')).toBe('__wb-form-field-hint__');
+    expect(first.hasAttribute('disabled')).toBe(true);
+    expect(first.textContent).toBe('Choose one');
+    expect(first.hasAttribute('selected')).toBe(true);
+  });
+
+  it('keeps the hint option distinct from a real empty-key option', async () => {
+    const { root } = await render(
+      <wb-form-field
+        name="tone"
+        type="select"
+        label="Tone"
+        placeholder="Choose one"
+        options={[
+          { key: '', label: 'No preference' },
+          { key: 'formal', label: 'Formal' },
+        ]}
+      ></wb-form-field>,
+    );
+    const select = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
+    const options = Array.from(select.querySelectorAll('option'));
+    // Two distinct values: the hint sentinel and the empty-key option.
+    expect(options.map(o => o.getAttribute('value'))).toEqual(['__wb-form-field-hint__', '', 'formal']);
+    expect(options[0].textContent).toBe('Choose one');
+    expect(options[1].textContent).toBe('No preference');
+    // Only the hint is selected initially (no real choice yet).
+    expect(options[0].hasAttribute('selected')).toBe(true);
+    expect(options[1].hasAttribute('selected')).toBe(false);
+  });
+
+  it('cannot re-select the hint option after choosing a real option', async () => {
+    const page = await render(
+      <wb-form-field
+        name="country"
+        type="select"
+        label="Country"
+        placeholder="Choose one"
+        options={[
+          { key: 'red', label: 'Red' },
+          { key: 'green', label: 'Green' },
+        ]}
+      ></wb-form-field>,
+    );
+    const { root, waitForChanges } = page;
+    const selectBefore = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
+    selectBefore.value = 'red';
+    selectBefore.dispatchEvent(new Event('input', { bubbles: true }));
+    await waitForChanges();
+    // re-query the re-rendered shadow DOM
+    const select = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
+    const hintOption = select.querySelector('option[value="__wb-form-field-hint__"]') as HTMLOptionElement;
+    expect(hintOption.hasAttribute('selected')).toBe(false);
+    // disabled → user cannot re-select it
+    expect(hintOption.hasAttribute('disabled')).toBe(true);
+    const options = Array.from(select.querySelectorAll('option'));
+    expect(options[1].hasAttribute('selected')).toBe(true);
+  });
+
+  it('selects a real empty-key option after the user chooses it instead of the hint', async () => {
+    const page = await render(
+      <wb-form-field
+        name="tone"
+        type="select"
+        label="Tone"
+        placeholder="Choose one"
+        options={[
+          { key: '', label: 'No preference' },
+          { key: 'formal', label: 'Formal' },
+        ]}
+      ></wb-form-field>,
+    );
+    const { root, waitForChanges } = page;
+    const selectBefore = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
+    selectBefore.value = '';
+    selectBefore.dispatchEvent(new Event('input', { bubbles: true }));
+    await waitForChanges();
+    const select = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
+    const options = Array.from(select.querySelectorAll('option'));
+    // The hint is deselected; the real empty-key option is selected.
+    expect(options[0].hasAttribute('selected')).toBe(false);
+    expect(options[1].hasAttribute('selected')).toBe(true);
+    expect(select.value).toBe('');
+  });
+
+  it('renders no extra option when placeholder is unset', async () => {
+    const { root } = await render(
+      <wb-form-field
+        name="country"
+        type="select"
+        label="Country"
+        options={[
+          { key: 'red', label: 'Red' },
+          { key: 'green', label: 'Green' },
+        ]}
+      ></wb-form-field>,
+    );
+    const select = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
+    const options = Array.from(select.querySelectorAll('option'));
+    expect(options.length).toBe(2);
+    expect(options.every(o => o.getAttribute('value') !== '')).toBe(true);
   });
 });
 

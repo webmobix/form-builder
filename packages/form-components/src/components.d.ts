@@ -69,7 +69,7 @@ export namespace Components {
          */
         "options"?: { key: string; label: string }[];
         /**
-          * Muted helper text shown while a richtext editor is empty (richtext only).
+          * Presentation-only hint text for all fillable data field types: native attribute on text/textarea, hint option on select, helper text on date/checkbox, Tiptap hint on richtext.
          */
         "placeholder"?: string;
         /**
@@ -279,7 +279,7 @@ declare namespace LocalJSX {
          */
         "options"?: { key: string; label: string }[];
         /**
-          * Muted helper text shown while a richtext editor is empty (richtext only).
+          * Presentation-only hint text for all fillable data field types: native attribute on text/textarea, hint option on select, helper text on date/checkbox, Tiptap hint on richtext.
          */
         "placeholder"?: string;
         /**

@@ -59,9 +59,19 @@
 }
 
 .wb-field--checkbox {
+  display: block;
+}
+
+.wb-field--checkbox__row {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Date/checkbox placeholder helper text: muted, small, no layout impact. */
+.wb-field__placeholder-hint {
+  color: var(--wb-placeholder-color, var(--wb-richtext-placeholder-color, #9a9a94));
+  font-size: 12px;
 }
 
 /* Disabled controls keep their normal enabled appearance (no browser graying)
@@ -171,7 +181,7 @@
   float: left;
   height: 0;
   pointer-events: none;
-  color: var(--wb-richtext-placeholder-color, #9a9a94);
+  color: var(--wb-placeholder-color, var(--wb-richtext-placeholder-color, #9a9a94));
 }
 
 /* Minimal formatting previews so the editor reads like its output */

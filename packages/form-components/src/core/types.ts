@@ -78,7 +78,12 @@ export interface FieldMeta {
   multiline?: boolean;
   initialLines?: number;
   maxHeight?: number;
-  /** Muted helper text shown while a richtext editor is empty (richtext-only in this change). */
+  /**
+   * Presentation-only hint text for all fillable data field types
+   * (`text` in all subtypes, `select`, `date`, `checkbox`, `richtext`).
+   * Rendered per control type (native attribute, hint option, or muted
+   * helper text) and never participates in validation or the submit payload.
+   */
   placeholder?: string;
   /** Ordered list of selectable choices for a `select` (Dropdown) field. The editor UI uses the same value for `key` and `label`. */
   options?: { key: string; label: string }[];

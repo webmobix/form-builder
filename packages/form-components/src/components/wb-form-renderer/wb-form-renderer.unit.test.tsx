@@ -211,6 +211,19 @@ describe('wb-form-renderer', () => {
     expect(field.shadowRoot!.querySelectorAll('select option').length).toBe(0);
   });
 
+  it('forwards placeholder for a non-richtext data field', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([{ id: 21, type: 'date', label: 'Birthday', placeholder: 'Your birthday' }]);
+    await waitForChanges();
+    const field = root.shadowRoot!.querySelector('wb-form-field') as any;
+    expect(field.placeholder).toBe('Your birthday');
+    // date renders the hint text below the control
+    const hint = field.shadowRoot!.querySelector('.wb-field__placeholder-hint');
+    expect(hint).not.toBeNull();
+    expect(hint.textContent).toBe('Your birthday');
+  });
+
   it('renders a heading element as an h2 with no form control', async () => {
     const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
     const renderer = instance as any;

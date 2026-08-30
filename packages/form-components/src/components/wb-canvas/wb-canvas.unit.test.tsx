@@ -323,6 +323,20 @@ describe('wb-canvas selection and update API', () => {
     expect(field.getAttribute('type')).toBe('select');
   });
 
+  it('forwards placeholder for a non-richtext data element to the preview', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      { id: 1, type: 'text', label: 'Name', placeholder: 'Jane Doe' },
+      { id: 2, type: 'date', label: 'Birthday', placeholder: 'Your birthday' },
+    ]);
+    await waitForChanges();
+    const fields = Array.from(root.shadowRoot!.querySelectorAll('wb-form-field')) as any[];
+    expect(fields.length).toBe(2);
+    expect(fields[0].getAttribute('placeholder')).toBe('Jane Doe');
+    expect(fields[1].getAttribute('placeholder')).toBe('Your birthday');
+  });
+
   it('updateField applies a columns patch to a nested row container', async () => {
     const { instance } = await render(<wb-canvas></wb-canvas>);
     const canvas = instance as any;

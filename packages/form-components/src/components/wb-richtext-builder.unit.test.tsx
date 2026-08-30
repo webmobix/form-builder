@@ -96,4 +96,74 @@ describe('richtext builder surfaces', () => {
       }),
     );
   });
+
+  it('Placeholder input appears for text, select, date, and checkbox fields', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+
+    for (const type of ['text', 'select', 'date', 'checkbox']) {
+      await inspector.setField({ id: 1, type: type as any, label: 'Field' });
+      await waitForChanges();
+
+      const textInputs = Array.from(root.shadowRoot!.querySelectorAll('input[type="text"]')) as HTMLInputElement[];
+      const placeholderInput = textInputs.find(i => (i.closest('.field-group') as HTMLElement)?.textContent?.includes('Placeholder'));
+      expect(placeholderInput).toBeDefined();
+      expect(`Placeholder input found for type=${type}`).toBeTruthy();
+
+      const labelGroup = placeholderInput!.closest('.field-group') as HTMLElement;
+      expect(labelGroup.textContent).toContain('Placeholder');
+      expect((placeholderInput as HTMLInputElement).value).toBe('');
+    }
+  });
+
+  it('Placeholder input shows the current value for a non-richtext field', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({ id: 3, type: 'text', label: 'Name', placeholder: 'Jane Doe' });
+    await waitForChanges();
+
+    const textInputs = Array.from(root.shadowRoot!.querySelectorAll('input[type="text"]')) as HTMLInputElement[];
+    const placeholderInput = textInputs.find(i => (i.closest('.field-group') as HTMLElement)?.textContent?.includes('Placeholder'))!;
+    expect((placeholderInput as HTMLInputElement).value).toBe('Jane Doe');
+  });
+
+  it('Placeholder edits on a non-richtext field emit the same patch semantics', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    await inspector.setField({ id: 2, type: 'select', label: 'Country' });
+    await waitForChanges();
+
+    const textInputs = Array.from(root.shadowRoot!.querySelectorAll('input[type="text"]')) as HTMLInputElement[];
+    const placeholderInput = textInputs.find(i => (i.closest('.field-group') as HTMLElement)?.textContent?.includes('Placeholder'))!;
+
+    placeholderInput.value = 'Choose one';
+    placeholderInput.dispatchEvent(new Event('input', { bubbles: true }));
+    await waitForChanges();
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { id: 2, patch: { placeholder: 'Choose one' } } }));
+
+    placeholderInput.value = '';
+    placeholderInput.dispatchEvent(new Event('input', { bubbles: true }));
+    await waitForChanges();
+    expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({ detail: { id: 2, patch: { placeholder: undefined } } }));
+  });
+
+  it('design elements show no Placeholder input', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+
+    for (const design of [
+      { id: 9, kind: 'design' as const, designType: 'heading' as const, label: 'Title' },
+      { id: 10, kind: 'design' as const, designType: 'paragraph' as const, label: 'Para', text: 'Body' },
+      { id: 11, kind: 'design' as const, designType: 'row' as const, label: 'Row', columns: 2 },
+    ]) {
+      await inspector.setField(design);
+      await waitForChanges();
+
+      const textInputs = Array.from(root.shadowRoot!.querySelectorAll('input[type="text"]')) as HTMLInputElement[];
+      const placeholderInput = textInputs.find(i => (i.closest('.field-group') as HTMLElement)?.textContent?.includes('Placeholder'));
+      expect(placeholderInput).toBeUndefined();
+    }
+  });
 });

@@ -5,6 +5,12 @@ import type { FieldSubtype, FieldType, Restrictions } from '../../core';
 import { applyLink, buildExtensions, FULL_TOOLBAR_ACTIONS, isEmptyDoc, plainTextLength, removeLink, type ToolbarAction } from './richtext';
 
 /**
+ * Sentinel `value` for the disabled hint `<option>` so it can never collide
+ * with a real option (real options may legitimately use an empty key).
+ */
+const SELECT_HINT_VALUE = '__wb-form-field-hint__';
+
+/**
  * Renders ONE field from the JSON Schema / UI Schema pair and participates
  * natively in an ancestor <form> via ElementInternals — confirmed working
  * inside shadow DOM (including native validation-bubble anchoring) in the
@@ -33,7 +39,7 @@ export class WbFormField {
   @Prop() multiline = false;
   @Prop() initialLines?: number;
   @Prop() maxHeight?: number;
-  /** Muted helper text shown while a richtext editor is empty (richtext only). */
+  /** Presentation-only hint text for all fillable data field types: native attribute on text/textarea, hint option on select, helper text on date/checkbox, Tiptap hint on richtext. */
   @Prop() placeholder?: string;
   /** Ordered list of selectable choices rendered as `<option>` children for `type="select"`. */
   @Prop() options?: { key: string; label: string }[];
@@ -42,6 +48,10 @@ export class WbFormField {
 
   @State() value = '';
   @State() checked = false;
+  // Tracks whether the user has chosen a real option in the select. Needed
+  // because the hint option and real options may both map to `value === ''`
+  // (an empty-key option), so empty string alone is ambiguous.
+  @State() private selectHasChoice = false;
   @State() private activeState: Record<string, boolean> = {};
   @State() private linkActive = false;
   @State() private linkEditing = false;
@@ -154,11 +164,15 @@ export class WbFormField {
   }
 
   private onInput = (e: Event) => {
-    const target = e.target as HTMLInputElement | HTMLSelectElement;
-    if (target instanceof HTMLSelectElement) {
-      this.value = target.value;
-    } else if (this.type === 'checkbox') {
+    const target = e.target as HTMLInputElement;
+    if (this.type === 'checkbox') {
       this.checked = target.checked;
+    } else if (this.type === 'select') {
+      this.value = target.value;
+      // The hint option is disabled, so it can only be the change target of
+      // a reset-to-empty, never a real choice; any reachable selection means
+      // a real option was picked.
+      this.selectHasChoice = true;
     } else {
       this.value = target.value;
     }
@@ -166,6 +180,7 @@ export class WbFormField {
   formResetCallback() {
     this.value = '';
     this.checked = false;
+    this.selectHasChoice = false;
     if (this.type === 'richtext') {
       this.linkEditing = false;
       this.linkError = '';
@@ -294,15 +309,27 @@ export class WbFormField {
   }
 
   render() {
+    // Shared hint id so date/checkbox hints are announced as the control's
+    // description (aria-describedby) instead of being silently dropped from
+    // or duplicated into the accessible name.
+    const hintId = this.placeholder ? `${this.name}-hint` : undefined;
+
     if (this.type === 'checkbox') {
       return (
-        <label class="wb-field wb-field--checkbox">
-          <input type="checkbox" ref={el => (this.inputEl = el)} checked={this.checked} disabled={this.disabled} onChange={this.onInput} />
-          <span>
-            {this.label}
-            {this.required && <span class="required-mark"> *</span>}
-          </span>
-        </label>
+        <div class="wb-field wb-field--checkbox">
+          <label class="wb-field--checkbox__row">
+            <input type="checkbox" ref={el => (this.inputEl = el)} checked={this.checked} disabled={this.disabled} aria-describedby={hintId} onChange={this.onInput} />
+            <span>
+              {this.label}
+              {this.required && <span class="required-mark"> *</span>}
+            </span>
+          </label>
+          {this.placeholder && (
+            <div class="wb-field__placeholder-hint" id={hintId}>
+              {this.placeholder}
+            </div>
+          )}
+        </div>
       );
     }
 
@@ -314,8 +341,16 @@ export class WbFormField {
             {this.required && <span class="required-mark"> *</span>}
           </span>
           <select id={this.name} class="wb-field__select" ref={el => (this.inputEl = el)} disabled={this.disabled} onInput={this.onInput}>
+            {this.placeholder && (
+              // Sentinel value keeps the hint option distinct from real
+              // options, including author-created options with an empty key;
+              // it is only ever selected while no real choice has been made.
+              <option value={SELECT_HINT_VALUE} disabled selected={!this.selectHasChoice}>
+                {this.placeholder}
+              </option>
+            )}
             {(this.options ?? []).map(option => (
-              <option key={option.key} value={option.key} selected={this.value === option.key}>
+              <option key={option.key} value={option.key} selected={this.selectHasChoice && this.value === option.key}>
                 {option.label}
               </option>
             ))}
@@ -333,6 +368,7 @@ export class WbFormField {
     const r = isNumber ? this.restrictions?.number : undefined;
     const isMultiline = this.type === 'text' && (this.subtype || 'text') !== 'number' && this.multiline;
     const maxLength = !isNumber ? this.restrictions?.text?.maxLength : undefined;
+    const showPlaceholderHint = this.type === 'date' && !!this.placeholder;
 
     return (
       <label class="wb-field" htmlFor={this.name}>
@@ -347,6 +383,8 @@ export class WbFormField {
             ref={el => (this.inputEl = el)}
             rows={this.initialLines ?? 3}
             maxLength={maxLength}
+            placeholder={this.placeholder}
+            aria-describedby={showPlaceholderHint ? hintId : undefined}
             disabled={this.disabled}
             style={this.maxHeight ? { maxHeight: `${this.maxHeight}px` } : undefined}
             value={this.value}
@@ -361,10 +399,17 @@ export class WbFormField {
             max={r?.max !== undefined ? r.max : undefined}
             step={r?.step !== undefined ? r.step : undefined}
             maxLength={maxLength}
+            placeholder={this.placeholder}
+            aria-describedby={showPlaceholderHint ? hintId : undefined}
             disabled={this.disabled}
             value={this.value}
             onInput={this.onInput}
           />
+        )}
+        {showPlaceholderHint && (
+          <div class="wb-field__placeholder-hint" id={hintId}>
+            {this.placeholder}
+          </div>
         )}
       </label>
     );

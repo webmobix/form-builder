@@ -72,7 +72,7 @@ interface FieldMeta {
   multiline?: boolean;
   initialLines?: number;       // textarea rows
   maxHeight?: number;          // textarea max height (px)
-  placeholder?: string;        // richtext-only: muted helper text while empty
+  placeholder?: string;        // all data field types: native attribute on text/textarea, hint option on select, helper text on date/checkbox, Tiptap hint on richtext
   designType?: DesignType;     // set when kind === 'design'
   text?: string;               // paragraph body
   columns?: number;            // row column count (default 2, clamped 1-4)
@@ -131,7 +131,7 @@ Single form field; `formAssociated: true` so it participates natively in an ance
 | `multiline` | `boolean` | `false` | Renders a `<textarea>` for `type === 'text'`. |
 | `initialLines` | `number` | — | Textarea `rows` (default 3). |
 | `maxHeight` | `number` | — | Textarea `max-height` in px. |
-| `placeholder` | `string` | — | Richtext only: muted helper text shown while the editor is empty. |
+| `placeholder` | `string` | — | All data field types: native attribute on text/textarea, disabled hint option on select, muted helper text on date/checkbox, Tiptap hint on richtext. |
 
 For checkboxes the submitted value is `'on'` when checked, `''` otherwise. Number
 subtypes apply `rangeUnderflow` / `rangeOverflow` validity from `restrictions.number`.
@@ -242,8 +242,8 @@ Edits the selected field's settings and emits patches for the canvas to apply.
 | `setField` | `field: FieldMeta \| null` |
 
 Emits patches for label (with empty-label validation), required, number min/max/step,
-text maxLength (also for rich text fields), rich text placeholder, multiline +
-initialLines + maxHeight, paragraph text, and row columns.
+text maxLength (also for rich text fields), placeholder (for every data field type),
+multiline + initialLines + maxHeight, paragraph text, and row columns.
 
 #### `<wb-form-renderer>`
 

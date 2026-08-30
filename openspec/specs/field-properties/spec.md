@@ -316,7 +316,7 @@ The inspector SHALL render a read-only "Element" display line for design-only el
 - **THEN** no control emits a patch and the element's `designType` is unchanged
 
 ### Requirement: Inspector provides a placeholder input for rich text fields
-When the selected field's type is `richtext`, the inspector SHALL render a "Placeholder" text input bound to the field's `placeholder` property. Editing it SHALL emit a `wbFieldUpdated` event with the field `id` and a patch containing `{ placeholder: <value> }`. Clearing the input SHALL be treated as unset (`undefined`). The Placeholder input SHALL NOT be rendered for any other field type.
+When a data field is selected (any `type`: `text` in all subtypes, `select`, `date`, `checkbox`, `richtext`), the inspector SHALL render a "Placeholder" text input bound to the field's `placeholder` property. Editing it SHALL emit a `wbFieldUpdated` event with the field `id` and a patch containing `{ placeholder: <value> }`. Clearing the input SHALL be treated as unset (`undefined`). The Placeholder input SHALL NOT be rendered for design-only elements — it SHALL NOT be rendered for `kind: 'design'` elements. The input SHALL be rendered for every data field type without exception.
 
 #### Scenario: Placeholder input appears for rich text fields
 - **WHEN** the selected field's type is `richtext`
@@ -330,8 +330,12 @@ When the selected field's type is `richtext`, the inspector SHALL render a "Plac
 - **WHEN** the user empties the Placeholder input
 - **THEN** the emitted patch sets `placeholder` to `undefined` and the renderer displays no helper text
 
-#### Scenario: Placeholder input hidden for other types
-- **WHEN** the selected field's type is not `richtext`
+#### Scenario: Placeholder input appears for additional data field types
+- **WHEN** the selected field's type is `text` (any subtype), `select`, `date`, or `checkbox`
+- **THEN** the inspector renders the same "Placeholder" text input bound to the field's `placeholder` property with identical patch semantics
+
+#### Scenario: Placeholder input hidden for design-only elements
+- **WHEN** the selected element is a design-only element (`kind: 'design'`)
 - **THEN** the inspector does not render a Placeholder input
 
 ### Requirement: FieldMeta carries dropdown options
