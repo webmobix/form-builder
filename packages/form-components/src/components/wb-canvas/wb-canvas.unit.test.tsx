@@ -550,3 +550,182 @@ describe('wb-canvas realistic preview rendering', () => {
     expect(startDragSpy).not.toHaveBeenCalled();
   });
 });
+
+describe('wb-canvas reorder drag indicator', () => {
+  /** Point events carry coordinates; mock-doc needs them defined explicitly. */
+  function createPointerEvent(type: string, init: Partial<PointerEventInit> = {}): Event {
+    const event = new Event(type, { bubbles: true });
+    Object.defineProperties(event, {
+      pointerId: { value: init.pointerId ?? 1 },
+      clientX: { value: init.clientX ?? 0 },
+      clientY: { value: init.clientY ?? 0 },
+    });
+    return event;
+  }
+
+  function rect(top: number, bottom: number): DOMRect {
+    return { top, bottom, left: 0, right: 400, width: 400, height: bottom - top, x: 0, y: top } as DOMRect;
+  }
+
+  /** Realistic list rect with `rows` stacked rows of `height` each. */
+  function stubLayout(canvas: any, rows: number, height = 60) {
+    vi.spyOn(canvas.listEl, 'getBoundingClientRect').mockReturnValue(rect(0, rows * height));
+    const rowEls = Array.from(canvas.listEl.querySelectorAll('[data-element-id]')) as HTMLElement[];
+    rowEls.forEach((el, i) => {
+      vi.spyOn(el, 'getBoundingClientRect').mockReturnValue(rect(i * height, (i + 1) * height));
+    });
+  }
+
+  /** Start a grip drag and return listeners for driving the drag manually. */
+  async function startGripDrag(root: any) {
+    const grip = root.shadowRoot!.querySelector('.grip') as HTMLElement;
+    (grip as any).setPointerCapture = vi.fn();
+    grip.dispatchEvent(createPointerEvent('pointerdown', { pointerType: 'mouse', pointerId: 1, clientX: 10, clientY: 30 }));
+    const handle = grip;
+    return {
+      move(clientY: number) {
+        handle.dispatchEvent(createPointerEvent('pointermove', { pointerId: 1, clientY }));
+      },
+      up() {
+        handle.dispatchEvent(createPointerEvent('pointerup', { pointerId: 1, clientY: 0 }));
+      },
+    };
+  }
+
+  it('startDrag resets stale hoverIndex and dropTarget', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      { id: 1, type: 'text', label: 'First' },
+      { id: 2, type: 'text', label: 'Second' },
+      { id: 3, type: 'text', label: 'Third' },
+    ]);
+    await waitForChanges();
+    // Simulate stale state left over from a previous/external drag.
+    canvas.hoverIndex = 2;
+    canvas.dropTarget = { kind: 'top', index: 2 };
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelectorAll('.indicator')).toHaveLength(1);
+    await startGripDrag(root);
+    expect(canvas.hoverIndex).toBeNull();
+    expect(canvas.dropTarget).toBeNull();
+    expect(canvas.draggingId).toBe(canvas.fields[0].id);
+  });
+
+  it('shows the insertion indicator at the index the pointer is over during a reorder drag', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      { id: 1, type: 'text', label: 'First' },
+      { id: 2, type: 'text', label: 'Second' },
+      { id: 3, type: 'text', label: 'Third' },
+    ]);
+    await waitForChanges();
+    stubLayout(canvas, 3, 60);
+    // getInsertionIndex uses :scope which mock-doc's selector engine does not
+    // support; stub it with the same top-row logic the rects emulate.
+    vi.spyOn(canvas, 'getInsertionIndex').mockImplementation((y: number) => Math.min(2, Math.max(0, Math.floor(y / 60))));
+    const drag = await startGripDrag(root);
+    drag.move(90); // between rows: index 1
+    expect(canvas.dropTarget).toEqual({ kind: 'top', index: 1 });
+    expect(canvas.hoverIndex).toBe(1);
+    await waitForChanges();
+    const indicators = root.shadowRoot!.querySelectorAll('.indicator');
+    expect(indicators).toHaveLength(1);
+    // Index 1 renders the line between rows 0 and 1: after First, before Second.
+    expect((indicators[0].previousElementSibling as HTMLElement | null)?.getAttribute('data-element-id')).toBe('1');
+    expect((indicators[0].nextElementSibling as HTMLElement | null)?.getAttribute('data-element-id')).toBe('2');
+    drag.move(150); // further down: index 2
+    await waitForChanges();
+    expect(canvas.dropTarget).toEqual({ kind: 'top', index: 2 });
+  });
+
+  it('hides the insertion indicator when the pointer leaves the canvas row list', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      { id: 1, type: 'text', label: 'First' },
+      { id: 2, type: 'text', label: 'Second' },
+    ]);
+    await waitForChanges();
+    stubLayout(canvas, 2, 60);
+    vi.spyOn(canvas, 'getInsertionIndex').mockImplementation((y: number) => Math.min(1, Math.max(0, Math.floor(y / 60))));
+    const drag = await startGripDrag(root);
+    drag.move(60); // over the list: indicator shows
+    expect(canvas.dropTarget).toEqual({ kind: 'top', index: 1 });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelectorAll('.indicator')).toHaveLength(1);
+    drag.move(500); // off the row list
+    expect(canvas.dropTarget).toBeNull();
+    expect(canvas.hoverIndex).toBeNull();
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelectorAll('.indicator')).toHaveLength(0);
+    // Moving back onto the list brings the indicator back.
+    drag.move(30);
+    expect(canvas.dropTarget).toEqual({ kind: 'top', index: 0 });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelectorAll('.indicator')).toHaveLength(1);
+  });
+
+  it('dragging a grip to the drop indicator position and releasing commits the element at that position', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    const wbChangeSpy = vi.fn();
+    root.addEventListener('wbChange', wbChangeSpy);
+    await canvas.importState([
+      { id: 1, type: 'text', label: 'First' },
+      { id: 2, type: 'text', label: 'Second' },
+      { id: 3, type: 'text', label: 'Third' },
+    ]);
+    await waitForChanges();
+    stubLayout(canvas, 3, 60);
+    vi.spyOn(canvas, 'getInsertionIndex').mockReturnValue(2); // pointer between Second and Third
+    const drag = await startGripDrag(root);
+    drag.move(150); // indicator shows between Second and Third
+    expect(canvas.dropTarget).toEqual({ kind: 'top', index: 2 });
+    await waitForChanges();
+    const indicators = root.shadowRoot!.querySelectorAll('.indicator');
+    expect(indicators).toHaveLength(1);
+    // The line sits between Second (id 2) and Third (id 3).
+    expect((indicators[0].previousElementSibling as HTMLElement | null)?.getAttribute('data-element-id')).toBe('2');
+    expect((indicators[0].nextElementSibling as HTMLElement | null)?.getAttribute('data-element-id')).toBe('3');
+    drag.up(); // drop while the indicator is between Second and Third
+    await waitForChanges();
+    // Dragging 'First' to insertion index 2 => final order Second, First, Third
+    expect(canvas.fields.map((f: FieldMeta) => f.label)).toEqual(['Second', 'First', 'Third']);
+    expect(wbChangeSpy).toHaveBeenCalled();
+    expect(canvas.dropTarget).toBeNull();
+    expect(canvas.hoverIndex).toBeNull();
+    expect(canvas.draggingId).toBeNull();
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelectorAll('.indicator')).toHaveLength(0);
+  });
+
+  it('releasing the pointer off the canvas row list cancels the reorder', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    const wbChangeSpy = vi.fn();
+    await canvas.importState([
+      { id: 1, type: 'text', label: 'First' },
+      { id: 2, type: 'text', label: 'Second' },
+      { id: 3, type: 'text', label: 'Third' },
+    ]);
+    await waitForChanges();
+    root.addEventListener('wbChange', wbChangeSpy);
+    stubLayout(canvas, 3, 60);
+    vi.spyOn(canvas, 'getInsertionIndex').mockReturnValue(2);
+    const drag = await startGripDrag(root);
+    drag.move(150); // indicator shows between Second and Third
+    expect(canvas.dropTarget).toEqual({ kind: 'top', index: 2 });
+    drag.move(500); // pointer leaves the row list: target cleared
+    expect(canvas.dropTarget).toBeNull();
+    expect(canvas.hoverIndex).toBeNull();
+    drag.up(); // release off-list: no commit
+    await waitForChanges();
+    expect(canvas.fields.map((f: FieldMeta) => f.label)).toEqual(['First', 'Second', 'Third']);
+    expect(wbChangeSpy).not.toHaveBeenCalled();
+    expect(canvas.dropTarget).toBeNull();
+    expect(canvas.hoverIndex).toBeNull();
+    expect(canvas.draggingId).toBeNull();
+  });
+});

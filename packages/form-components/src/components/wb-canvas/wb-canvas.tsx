@@ -355,6 +355,10 @@ export class WbCanvas {
     const handle = e.currentTarget as HTMLElement;
     handle.setPointerCapture(e.pointerId);
     this.draggingId = field.id;
+    // Clear stale state from a previous/external drag so no indicator can
+    // flash at drag start.
+    this.hoverIndex = null;
+    this.dropTarget = null;
 
     const ghost = document.createElement('div');
     ghost.textContent = field.label;
@@ -370,7 +374,17 @@ export class WbCanvas {
       if (this.ghostEl) {
         this.ghostEl.style.transform = `translate(${ev.clientX - 20}px,${ev.clientY - 16}px)`;
       }
-      this.hoverIndex = this.getInsertionIndex(ev.clientY);
+      const rect = this.listEl?.getBoundingClientRect();
+      // Off the canvas row list: no indicator, nothing commits (mirrors the
+      // palette flow's out-of-list behavior).
+      if (!rect || ev.clientY < rect.top || ev.clientY > rect.bottom) {
+        this.dropTarget = null;
+        this.hoverIndex = null;
+        return;
+      }
+      const index = this.getInsertionIndex(ev.clientY);
+      this.dropTarget = { kind: 'top', index };
+      this.hoverIndex = index;
       this.autoScrollCheck(ev.clientY);
     };
     const onUp = () => {
@@ -534,6 +548,7 @@ export class WbCanvas {
     if (this.ghostEl) this.ghostEl.remove();
     this.ghostEl = undefined;
     this.hoverIndex = null;
+    this.dropTarget = null;
     this.draggingId = null;
   }
 }
