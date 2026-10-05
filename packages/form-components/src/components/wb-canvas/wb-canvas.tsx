@@ -15,6 +15,10 @@ type DropTarget = { kind: 'top'; index: number } | { kind: 'column'; containerId
  * the original bug (re-render killed the element mid-drag, silently ending
  * pointer capture) — keyed VDOM avoids it by construction, as long as the
  * key stays stable across the reorder.
+ *
+ * @slot - Host-provided default content shown while the canvas has no fields.
+ *   It is rendered inside the scrollable drop surface, so the canvas stays a
+ *   palette drop target while the content is displayed.
  */
 @Component({
   tag: 'wb-canvas',
@@ -693,6 +697,11 @@ export class WbCanvas {
     return (
       // biome-ignore lint/a11y/noStaticElementInteractions: container that deselects on empty-area click; elements are real buttons
       <div class="wrap" ref={el => (this.listEl = el)} onClick={this.onWrapClick} onKeyDown={this.onWrapKeyDown}>
+        {this.fields.length === 0 && (
+          <div class="empty-state">
+            <slot />
+          </div>
+        )}
         {this.fields.map((f, idx) => (
           // biome-ignore lint/correctness/useJsxKeyInIterable: Stencil Fragment takes no key; the keyed element is the row below
           <Fragment>

@@ -207,6 +207,13 @@ Type: `Promise<void>`
 
 
 
+## Slots
+
+| Slot | Description                                                                                                                                                                                      |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|      | Host-provided default content shown while the canvas has no fields. It is rendered inside the scrollable drop surface, so the canvas stays a palette drop target while the content is displayed. |
+
+
 ## Dependencies
 
 ### Depends on

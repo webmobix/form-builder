@@ -8,9 +8,19 @@
     <script nomodule src="/build/wb-form.js"></script>
     <style>
       body { font-family: system-ui, sans-serif; max-width: 960px; margin: 40px auto; }
-      .layout { display: flex; gap: 16px; align-items: flex-start; }
+      .layout { display: flex; gap: 16px; align-items: stretch; height: 78vh; min-height: 440px; }
       wb-palette { flex: 0 0 180px; }
-      wb-canvas { flex: 1; }
+      wb-canvas { flex: 1; min-width: 0; --wb-canvas-empty-min-height: 200px; }
+      .canvas-empty-demo {
+        border: 1px dashed #cfcfca;
+        border-radius: 10px;
+        padding: 24px;
+        text-align: center;
+        color: #555;
+        background: #fafaf8;
+      }
+      .canvas-empty-demo strong { display: block; margin-bottom: 6px; }
+      .canvas-empty-demo p { margin: 0; font-size: 13px; }
       wb-inspector { flex: 0 0 260px; }
       pre { background: #1c1c1a; color: #d9d9d3; padding: 12px; border-radius: 8px; font-size: 12px; }
       .section { margin-top: 24px; }
@@ -73,7 +83,16 @@
 
     <div class="layout">
       <wb-palette></wb-palette>
-      <wb-canvas id="canvas"></wb-canvas>
+      <wb-canvas id="canvas">
+        <!-- Default content: hosted children are shown only while the canvas
+             has no elements. The canvas stays a palette drop target, so a
+             field can be dragged onto this area to insert the first element.
+             Size the empty region via --wb-canvas-empty-min-height. -->
+        <div class="canvas-empty-demo">
+          <strong>Start building</strong>
+          <p>Drag a field from the palette onto this area to add your first element.</p>
+        </div>
+      </wb-canvas>
       <wb-inspector id="inspector"></wb-inspector>
     </div>
 

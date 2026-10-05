@@ -146,6 +146,123 @@ describe('wb-canvas external drag API', () => {
   });
 });
 
+describe('wb-canvas empty-state slot', () => {
+  it('renders a slot in the shadow root when the field list is empty', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([]);
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelector('.empty-state')).not.toBeNull();
+    expect(root.shadowRoot!.querySelector('slot')).not.toBeNull();
+  });
+
+  it('removes the slot after importState adds a field', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([]);
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelector('slot')).not.toBeNull();
+
+    await canvas.importState([{ id: 1, type: 'text', label: 'Name' }]);
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelector('.empty-state')).toBeNull();
+    expect(root.shadowRoot!.querySelector('slot')).toBeNull();
+  });
+
+  it('removes the slot after addField', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([]);
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelector('slot')).not.toBeNull();
+
+    await canvas.addField('text', 'Name');
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelector('.empty-state')).toBeNull();
+    expect(root.shadowRoot!.querySelector('slot')).toBeNull();
+  });
+
+  it('does not stamp element-identity attributes on the empty-state wrapper', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([]);
+    await waitForChanges();
+    const emptyState = root.shadowRoot!.querySelector('.empty-state') as HTMLElement;
+    expect(emptyState).not.toBeNull();
+    expect(emptyState.hasAttribute('data-element-id')).toBe(false);
+    expect(emptyState.hasAttribute('data-container-id')).toBe(false);
+    expect(emptyState.hasAttribute('data-column')).toBe(false);
+  });
+
+  it('resolves a top-level drop target at index 0 over an empty canvas', async () => {
+    const { instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([]);
+    await waitForChanges();
+    vi.spyOn(canvas.listEl, 'getBoundingClientRect').mockReturnValue(rect(0, 200));
+    // getInsertionIndex uses :scope, which mock-doc's selector engine does not
+    // support; an empty canvas always resolves to index 0.
+    vi.spyOn(canvas, 'getInsertionIndex').mockReturnValue(0);
+
+    await canvas.beginExternalDrag();
+    await canvas.setExternalHoverIndex(100, 100);
+
+    expect(canvas.dropTarget).toEqual({ kind: 'top', index: 0 });
+    expect(canvas.hoverIndex).toBe(0);
+  });
+
+  it('inserts the first field at index 0 and removes the empty-state slot', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([]);
+    await waitForChanges();
+    vi.spyOn(canvas.listEl, 'getBoundingClientRect').mockReturnValue(rect(0, 200));
+    // getInsertionIndex uses :scope, which mock-doc's selector engine does not
+    // support; an empty canvas always resolves to index 0.
+    vi.spyOn(canvas, 'getInsertionIndex').mockReturnValue(0);
+
+    const wbChangeSpy = vi.fn();
+    const wbFieldSelectedSpy = vi.fn();
+    root.addEventListener('wbChange', wbChangeSpy);
+    root.addEventListener('wbFieldSelected', wbFieldSelectedSpy);
+
+    await canvas.beginExternalDrag();
+    await canvas.setExternalHoverIndex(100, 100);
+    await canvas.commitExternalInsert('text', 'Name');
+    await waitForChanges();
+
+    expect(canvas.fields).toHaveLength(1);
+    expect(canvas.fields[0].type).toBe('text');
+    expect(canvas.fields[0].label).toBe('Name');
+    expect(wbChangeSpy).toHaveBeenCalled();
+    expect(wbFieldSelectedSpy).toHaveBeenCalledWith(expect.objectContaining({ detail: expect.objectContaining({ type: 'text', label: 'Name' }) }));
+    expect(canvas.externalDrag).toBe(false);
+    expect(canvas.dropTarget).toBeNull();
+    expect(canvas.hoverIndex).toBeNull();
+    expect(root.shadowRoot!.querySelector('.empty-state')).toBeNull();
+    expect(root.shadowRoot!.querySelector('slot')).toBeNull();
+  });
+
+  it('releasing outside the canvas does not insert and keeps the empty-state slot', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([]);
+    await waitForChanges();
+    vi.spyOn(canvas.listEl, 'getBoundingClientRect').mockReturnValue(rect(0, 200));
+
+    await canvas.beginExternalDrag();
+    // Below the wrap bottom -> no drop target, nothing to commit.
+    await canvas.setExternalHoverIndex(100, 300);
+    expect(canvas.dropTarget).toBeNull();
+    expect(canvas.hoverIndex).toBeNull();
+
+    await canvas.cancelExternalDrag();
+    await waitForChanges();
+    expect(canvas.fields).toHaveLength(0);
+    expect(root.shadowRoot!.querySelector('.empty-state')).not.toBeNull();
+  });
+});
+
 describe('wb-canvas addFieldAfter', () => {
   it('inserts a field immediately after the selected component and emits wbChange/wbFieldSelected', async () => {
     const { root, instance } = await render(<wb-canvas></wb-canvas>);

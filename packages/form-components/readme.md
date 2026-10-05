@@ -135,3 +135,43 @@ Each Stencil component `wb-foo` is exposed as a PascalCase wrapper (e.g., `WbCan
 #### Preact
 
 Preact consumers can reuse the React wrappers by aliasing `react` and `react-dom` to `preact/compat` in their bundler config. This is best-effort and not officially guaranteed — edge cases may arise with `preact/compat`.
+
+## Empty canvas content
+
+`<wb-canvas>` renders a default slot only while it has no elements. Pass children to show your own onboarding copy, illustration, or "drag a field here" guidance in the blank canvas; the canvas stays a palette drop target, so a field can still be dragged onto it to insert the first element. Once at least one element exists the children are hidden and the field list is shown. Pass no children and the canvas stays visually blank, exactly as before — no built-in placeholder is rendered.
+
+The canvas fills the height its container makes available, and while it is empty the default content is centred vertically in that region. Give it a definite height (e.g. stretch it in a flex layout, or set `height` on the element) to use the full-height behaviour; with no height from the container it sizes to its content. The canvas surface no longer caps at `60vh`, so a constrained container is what limits the scroll area.
+
+Plain HTML:
+
+```html
+<wb-canvas>
+  <div class="empty-state">
+    <p>Drag a field here to start building your form.</p>
+  </div>
+</wb-canvas>
+```
+
+React (children are forwarded to the custom element as light DOM, so the same default slot receives them):
+
+```tsx
+import { WbCanvas } from '@webmobix/form-components/react';
+
+function App() {
+  return (
+    <WbCanvas>
+      <div className="empty-state">
+        <p>Drag a field here to start building your form.</p>
+      </div>
+    </WbCanvas>
+  );
+}
+```
+
+Size the empty region with the `--wb-canvas-empty-min-height` CSS custom property. Its default is `0`, so hosts that pass no children incur no extra box; set it when you want a larger drop surface:
+
+```css
+wb-canvas {
+  --wb-canvas-empty-min-height: 240px;
+}
+```
