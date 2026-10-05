@@ -1,5 +1,11 @@
 # @webmobix/form-components
 
+## 0.7.0
+
+### Minor Changes
+
+- 84530a1: more css vars, allow default content on canvas when form is empty
+
 ## 0.6.0
 
 ### Minor Changes
