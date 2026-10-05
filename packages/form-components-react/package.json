@@ -29,7 +29,7 @@
     "prebuild": "npm run build --workspace @webmobix/form-components"
   },
   "dependencies": {
-    "@stencil/react-output-target": "^1.6.1",
+    "@stencil/react-output-target": "^1.6.2",
     "@webmobix/form-components": "workspace:*"
   },
   "devDependencies": {
