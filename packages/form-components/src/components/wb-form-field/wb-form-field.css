@@ -10,6 +10,8 @@
 .wb-field__label {
   display: block;
   font-size: var(--wb-field-label-font-size, 12px);
+  font-weight: var(--wb-field-label-font-weight, 600);
+  line-height: var(--wb-field-label-line-height, 20px);
   color: var(--wb-field-label-color, #55554f);
   margin-bottom: var(--wb-field-label-margin-bottom, 4px);
 }
