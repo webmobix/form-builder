@@ -1,5 +1,16 @@
 # @webmobix/form-components-react
 
+## 0.4.0
+
+### Minor Changes
+
+- 84530a1: more css vars, allow default content on canvas when form is empty
+
+### Patch Changes
+
+- Updated dependencies [84530a1]
+  - @webmobix/form-components@0.7.0
+
 ## 0.3.0
 
 ### Minor Changes
