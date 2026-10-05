@@ -1,5 +1,16 @@
 # @webmobix/form-components-react
 
+## 0.3.0
+
+### Minor Changes
+
+- ef2801c: Added more CSSS variables to overwrite field styles
+
+### Patch Changes
+
+- Updated dependencies [ef2801c]
+  - @webmobix/form-components@0.6.0
+
 ## 0.2.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @webmobix/form-components
 
+## 0.6.0
+
+### Minor Changes
+
+- ef2801c: Added more CSSS variables to overwrite field styles
+
 ## 0.5.0
 
 ### Minor Changes
