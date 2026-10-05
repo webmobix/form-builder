@@ -26,11 +26,25 @@
 .wb-field input[type="password"],
 .wb-field input[type="tel"] {
   width: var(--wb-field-input-width, 100%);
+  height: var(--wb-field-input-height, auto);
   padding: var(--wb-field-input-padding, 8px 10px);
   font-size: var(--wb-field-input-font-size, 15px);
   border: var(--wb-field-input-border, 1px solid #ddd);
   border-radius: var(--wb-field-input-border-radius, 8px);
   box-sizing: border-box;
+}
+
+.wb-field input[type="text"]::placeholder,
+.wb-field input[type="date"]::placeholder,
+.wb-field input[type="email"]::placeholder,
+.wb-field input[type="url"]::placeholder,
+.wb-field input[type="number"]::placeholder,
+.wb-field input[type="password"]::placeholder,
+.wb-field input[type="tel"]::placeholder {
+  color: var(--wb-field-input-placeholder-color, inherit);
+  font-size: var(--wb-field-input-placeholder-font-size, 16px);
+  font-style: var(--wb-field-input-placeholder-font-style, inherit);
+  opacity: var(--wb-field-input-placeholder-opacity, 0.4); /* Essential for resetting Firefox's default opacity */
 }
 
 .wb-field__textarea {
