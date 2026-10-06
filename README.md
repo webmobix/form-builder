@@ -308,6 +308,15 @@ import { WbCanvas, WbFormRenderer } from '@webmobix/form-components-react';
 `src/index.html` in `form-components` wires palette + canvas + a standalone field together
 in one page — closest thing to a working end-to-end smoke test right now.
 
+## Releasing
+
+Both packages publish to the public npm registry through Changesets
+(`.github/workflows/publish.yml`, using npm OIDC trusted publishing — no long-lived token):
+
+1. Add a changeset (`pnpm changeset`) describing the change and commit it to `main`.
+2. CI opens a **Version Packages** PR with the bumped versions and changelogs.
+3. Merge that PR — CI then builds, publishes to npm, pushes git tags, and creates GitHub releases.
+
 ## Deliberately not done yet
 
 - **React output target consumers in-app** — `@stencil/react-output-target` is wired and the
@@ -318,10 +327,6 @@ in one page — closest thing to a working end-to-end smoke test right now.
   (cross-shadow-boundary `elementFromPoint` drilling), not yet ported into `wb-palette`.
 - **`form-builder-core`** (palette registry, selection state, schema serialization from
   canvas state) and the three-pane desktop / FAB-and-sheet mobile shells — not started.
-- **GitHub Packages publishing** — `publishConfig` is set on all three package.json files
-  and root `.npmrc` routes the `@webmobix` scope there, but nothing has been published yet; needs
-  a `GITHUB_PACKAGES_TOKEN` and a CI workflow (Changesets recommended for version bumps
-  across the multi-package split).
 - **Unique field keys from schema path** — `wb-form-field`'s `name` prop is currently just
   whatever string you pass it; nothing yet derives it automatically from the JSON Pointer
   path in the UI Schema, which is what avoids the naming-collision risk noted earlier.
