@@ -428,3 +428,62 @@ describe('wb-inspector design-only elements', () => {
     }
   });
 });
+
+describe('wb-inspector delete button', () => {
+  it('renders the Delete button in the data-field panel by default', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    const btn = root.shadowRoot!.querySelector('.delete-btn') as HTMLButtonElement;
+    expect(btn).not.toBeNull();
+    expect(btn.textContent).toBe('Delete');
+  });
+
+  it('renders the Delete button in the design-element panel by default', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({ id: 2, kind: 'design', type: 'text', label: 'Title', designType: 'heading' });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelector('.delete-btn')).not.toBeNull();
+  });
+
+  it('hides the Delete button in the data-field panel when showDeleteFieldButton is false', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    inspector.showDeleteFieldButton = false;
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelector('.delete-btn')).toBeNull();
+  });
+
+  it('hides the Delete button in the design-element panel when showDeleteFieldButton is false', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    inspector.showDeleteFieldButton = false;
+    await inspector.setField({ id: 2, kind: 'design', type: 'text', label: 'Intro', designType: 'paragraph', text: '' });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelector('.delete-btn')).toBeNull();
+  });
+
+  it('renders the Delete button when showDeleteFieldButton is explicitly true', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    inspector.showDeleteFieldButton = true;
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelector('.delete-btn')).not.toBeNull();
+  });
+
+  it('emits wbInspectDelete with the selected id when Delete is clicked', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbInspectDelete', spy);
+    await inspector.setField({ id: 12, type: 'text', label: 'Name' });
+    await waitForChanges();
+    (root.shadowRoot!.querySelector('.delete-btn') as HTMLButtonElement).click();
+    await waitForChanges();
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { id: 12 } }));
+  });
+});

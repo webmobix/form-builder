@@ -96,6 +96,10 @@ export namespace Components {
          */
         "field": FieldMeta | null;
         "setField": (field: FieldMeta | null) => Promise<void>;
+        /**
+          * @default true
+         */
+        "showDeleteFieldButton": boolean;
     }
     interface WbPalette {
     }
@@ -307,6 +311,10 @@ declare namespace LocalJSX {
         "field"?: FieldMeta | null;
         "onWbFieldUpdated"?: (event: WbInspectorCustomEvent<{ id: number; patch: Partial<FieldMeta> }>) => void;
         "onWbInspectDelete"?: (event: WbInspectorCustomEvent<{ id: number }>) => void;
+        /**
+          * @default true
+         */
+        "showDeleteFieldButton"?: boolean;
     }
     interface WbPalette {
         "onWbAddField"?: (event: WbPaletteCustomEvent<FieldTypeDef>) => void;
@@ -327,12 +335,15 @@ declare namespace LocalJSX {
         "placeholder": string;
         "disabled": boolean;
     }
+    interface WbInspectorAttributes {
+        "showDeleteFieldButton": boolean;
+    }
 
     interface IntrinsicElements {
         "wb-canvas": WbCanvas;
         "wb-form-field": Omit<WbFormField, keyof WbFormFieldAttributes> & { [K in keyof WbFormField & keyof WbFormFieldAttributes]?: WbFormField[K] } & { [K in keyof WbFormField & keyof WbFormFieldAttributes as `attr:${K}`]?: WbFormFieldAttributes[K] } & { [K in keyof WbFormField & keyof WbFormFieldAttributes as `prop:${K}`]?: WbFormField[K] } & OneOf<"name", WbFormField["name"], WbFormFieldAttributes["name"]> & OneOf<"label", WbFormField["label"], WbFormFieldAttributes["label"]>;
         "wb-form-renderer": WbFormRenderer;
-        "wb-inspector": WbInspector;
+        "wb-inspector": Omit<WbInspector, keyof WbInspectorAttributes> & { [K in keyof WbInspector & keyof WbInspectorAttributes]?: WbInspector[K] } & { [K in keyof WbInspector & keyof WbInspectorAttributes as `attr:${K}`]?: WbInspectorAttributes[K] } & { [K in keyof WbInspector & keyof WbInspectorAttributes as `prop:${K}`]?: WbInspector[K] };
         "wb-palette": WbPalette;
     }
 }

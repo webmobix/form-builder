@@ -43,6 +43,7 @@ function designDisplayName(designType?: FieldMeta['designType']): string {
 })
 export class WbInspector {
   @Prop({ mutable: true }) field: FieldMeta | null = null;
+  @Prop() showDeleteFieldButton: boolean = true;
   @State() private localField: FieldMeta | null = null;
   @State() private labelError = '';
 
@@ -206,9 +207,11 @@ export class WbInspector {
             </label>
           )}
 
-          <button type="button" class="delete-btn" onClick={this.onDeleteClick}>
-            Delete
-          </button>
+          {this.showDeleteFieldButton !== false && (
+            <button type="button" class="delete-btn" onClick={this.onDeleteClick}>
+              Delete
+            </button>
+          )}
         </div>
       );
     }
@@ -305,9 +308,11 @@ export class WbInspector {
           </div>
         )}
 
-        <button type="button" class="delete-btn" onClick={this.onDeleteClick}>
-          Delete
-        </button>
+        {this.showDeleteFieldButton !== false && (
+          <button type="button" class="delete-btn" onClick={this.onDeleteClick}>
+            Delete
+          </button>
+        )}
       </div>
     );
   }

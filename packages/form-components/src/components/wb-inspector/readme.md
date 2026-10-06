@@ -20,9 +20,10 @@ The inspector fills `100%` of its host's width and does not enforce a minimum wi
 
 ## Properties
 
-| Property | Attribute | Description | Type        | Default |
-| -------- | --------- | ----------- | ----------- | ------- |
-| `field`  | --        |             | `FieldMeta` | `null`  |
+| Property                | Attribute                  | Description | Type        | Default |
+| ----------------------- | -------------------------- | ----------- | ----------- | ------- |
+| `field`                 | --                         |             | `FieldMeta` | `null`  |
+| `showDeleteFieldButton` | `show-delete-field-button` |             | `boolean`   | `true`  |
 
 
 ## Events

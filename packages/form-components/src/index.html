@@ -93,13 +93,17 @@
           <p>Drag a field from the palette onto this area to add your first element.</p>
         </div>
       </wb-canvas>
-      <wb-inspector id="inspector"></wb-inspector>
+      <wb-inspector id="inspector" show-delete-field-button="false"></wb-inspector>
     </div>
 
     <div class="section">
       <div class="section-title">Builder payload</div>
       <button type="button" id="dump-builder">Dump builder payload</button>
       <button type="button" id="export-json">Export JSON</button>
+      <label style="margin-left: 12px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; vertical-align: middle;">
+        <input type="checkbox" id="toggle-delete-button" checked />
+        Inspector delete button
+      </label>
     </div>
 
     <div class="section">
@@ -134,6 +138,7 @@
       const importInput = document.getElementById('import-input');
       const importFile = document.getElementById('import-file');
       const loadBtn = document.getElementById('load-into-canvas');
+      const deleteButtonToggle = document.getElementById('toggle-delete-button');
 
       let selectedId = null;
       let lastBuilderPayload = null;
@@ -212,6 +217,14 @@
       // the flow closes without any extra wiring here.
       inspector.addEventListener('wbInspectDelete', (e) => {
         canvas.removeField(e.detail.id);
+      });
+
+      // ---- page → inspector: toggle the optional Delete button ----
+      // The inspector Delete button is optional: because each canvas element
+      // already has a remove "×" overlay, a host can turn the inspector button
+      // off. This checkbox drives the inspector's showDeleteFieldButton prop.
+      deleteButtonToggle.addEventListener('change', () => {
+        inspector.showDeleteFieldButton = deleteButtonToggle.checked;
       });
 
       // ---- renderer → page: form submitted ----

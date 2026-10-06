@@ -49,7 +49,7 @@
   "scripts": {
     "build": "stencil build",
     "prepublishOnly": "stencil build",
-    "start": "stencil build --dev --watch --serve",
+    "start": "stencil build --dev --watch --serve --no-open",
     "test": "vitest run",
     "test:watch": "vitest",
     "generate": "stencil generate"

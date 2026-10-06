@@ -1,4 +1,10 @@
-## ADDED Requirements
+# element-deletion Specification
+
+## Purpose
+
+Lets users remove canvas elements (data fields and design elements, top-level or nested inside row container columns) and guarantees that deleted element ids are never reused, so persisted forms stay stable across save/load cycles.
+
+## Requirements
 
 ### Requirement: Canvas elements expose a remove overlay button
 Every element rendered on the canvas (data fields, headings, paragraphs, row containers, and nested children inside row container columns) SHALL render a remove overlay button ("×") positioned top-right within the element chrome, adjacent to the type tag. Activating the remove button SHALL delete that element only (no subtree sibling effects), SHALL NOT trigger element selection, and SHALL NOT start a drag.
@@ -64,14 +70,18 @@ The canvas SHALL expose `removeField(id: number): Promise<void>` that removes th
 - **THEN** the second call is a no-op
 
 ### Requirement: Inspector offers a delete action for the selected element
-The inspector SHALL render a Delete button for the currently selected element in both the design-element panel and the data-field panel. Activating it SHALL emit `wbInspectDelete: CustomEvent<{ id: number }>` with the selected field's id; the inspector SHALL NOT mutate canvas state directly.
+The inspector SHALL render a Delete button for the currently selected element in both the design-element panel and the data-field panel when its `showDeleteFieldButton` property is not `false` (default `true`). Activating it SHALL emit `wbInspectDelete: CustomEvent<{ id: number }>` with the selected field's id; the inspector SHALL NOT mutate canvas state directly. When `showDeleteFieldButton` is `false`, the inspector SHALL NOT render the Delete button and SHALL NOT emit `wbInspectDelete`.
 
 #### Scenario: Delete button present on both panels
-- **WHEN** the inspector shows settings for a data field or a design element
+- **WHEN** the inspector shows settings for a data field or a design element and `showDeleteFieldButton` is unset or `true`
 - **THEN** a Delete button is rendered in the panel
 
+#### Scenario: Delete button hidden when disabled
+- **WHEN** the inspector shows settings for a data field or a design element and `showDeleteFieldButton` is `false`
+- **THEN** the inspector does not render a Delete button in either panel
+
 #### Scenario: Activation emits wbInspectDelete
-- **WHEN** the user clicks Delete while a field with id 12 is selected
+- **WHEN** the user clicks Delete while a field with id 12 is selected and `showDeleteFieldButton` is not `false`
 - **THEN** the inspector emits `wbInspectDelete` with `detail` equal to `{ id: 12 }` and performs no state mutation itself
 
 ### Requirement: Removed element ids are never reused
