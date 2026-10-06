@@ -1,4 +1,10 @@
-## ADDED Requirements
+# builder-state-import Specification
+
+## Purpose
+
+Lets a host replace the canvas contents wholesale from a serialized `FieldMeta[]` payload, preserving the imported field ids so saved forms can be restored.
+
+## Requirements
 
 ### Requirement: Canvas hydrates from a FieldMeta[] payload via importState
 The `wb-canvas` component SHALL expose a public `importState(fields: FieldMeta[]): Promise<void>` method that replaces the canvas's current field list with the provided `fields` wholesale. The imported fields' `id` values SHALL be preserved as-is (no remapping). After a successful import, the canvas SHALL emit `wbChange` with the new `fields` array.

@@ -1,3 +1,9 @@
+# text-input-subtypes Specification
+
+## Purpose
+
+Exposes email, URL, number, and password text-input subtypes as first-class palette entries that create `text` fields with the matching subtype.
+
 ## Requirements
 
 ### Requirement: Palette exposes text-input subtypes as first-class entries

@@ -1,3 +1,9 @@
+# wb-inspector-css-vars Specification
+
+## Purpose
+
+Let hosts theme the `wb-inspector` container's background, border, radius, padding, and font size through CSS custom properties, each falling back to the built-in defaults.
+
 ## Requirements
 
 ### Requirement: CSS custom properties for inspector container theming

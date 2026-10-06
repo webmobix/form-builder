@@ -1,3 +1,9 @@
+# form-renderer Specification
+
+## Purpose
+
+Renders a fillable, submitting form from a `FieldMeta[]` configuration, including data fields and design-only elements, so hosts can display and capture a built form.
+
 ## Requirements
 
 ### Requirement: Renderer renders a fillable form from a FieldMeta[] config

@@ -1,3 +1,9 @@
+# required-field-property Specification
+
+## Purpose
+
+Lets a data field be marked required, adding a `required` flag to the field model and enforcing value presence with a `valueMissing` validity error.
+
 ## Requirements
 
 ### Requirement: FieldMeta carries a required flag

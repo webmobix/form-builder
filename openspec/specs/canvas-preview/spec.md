@@ -1,3 +1,9 @@
+# canvas-preview Specification
+
+## Purpose
+
+Renders the canvas's data fields and design elements as real, inert controls that match the live form's appearance without being editable or submitting values.
+
 ## Requirements
 
 ### Requirement: Canvas renders data fields as real inert form controls

@@ -1,3 +1,9 @@
+# richtext-field Specification
+
+## Purpose
+
+Adds a rich text field type to the palette and canvas so builders can place a formatted-text input alongside the other field types.
+
 ## Requirements
 
 ### Requirement: Palette offers the rich text field type

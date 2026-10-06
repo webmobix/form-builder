@@ -1,3 +1,9 @@
+# palette-css-vars Specification
+
+## Purpose
+
+Let hosts theme the `wb-palette` panel's background, radius, padding, and gap through CSS custom properties, each falling back to the built-in defaults.
+
 ## Requirements
 
 ### Requirement: CSS custom properties for palette panel theming

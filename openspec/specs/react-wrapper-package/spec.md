@@ -1,3 +1,9 @@
+# react-wrapper-package Specification
+
+## Purpose
+
+Provides a dedicated `@webmobix/form-components-react` workspace package that re-exports the Stencil-generated React wrappers so React apps can consume the components ergonomically.
+
 ## Requirements
 
 ### Requirement: Dedicated React wrapper package exists in the workspace

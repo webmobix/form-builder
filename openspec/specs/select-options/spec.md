@@ -1,3 +1,9 @@
+# select-options Specification
+
+## Purpose
+
+Renders a dropdown field as a native `<select>` populated from the field's configured options, submitting the selected option's key through the standard form flow.
+
 ## Requirements
 
 ### Requirement: Dropdown field renders a native select element

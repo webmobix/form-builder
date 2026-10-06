@@ -1,3 +1,9 @@
+# design-elements Specification
+
+## Purpose
+
+Lets a form contain non-data design elements (headings, paragraphs, and multi-column row containers) alongside data fields, with a discriminated field model the palette, canvas, renderer, and inspector all share.
+
 ## Requirements
 
 ### Requirement: Field model discriminates data and design elements

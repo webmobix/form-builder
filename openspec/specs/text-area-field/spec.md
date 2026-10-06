@@ -1,3 +1,9 @@
+# text-area-field Specification
+
+## Purpose
+
+Lets a plain text field render as a multi-line textarea via a `multiline` flag, preserving its name, value, required state, and restrictions across the switch.
+
 ## Requirements
 
 ### Requirement: Text field can render as a multi-line textarea

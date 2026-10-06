@@ -1,4 +1,10 @@
-## ADDED Requirements
+# palette-add-position Specification
+
+## Purpose
+
+Determines where a field is inserted on the canvas when chosen from the palette, so new fields land after the current selection or at the end when nothing is selected.
+
+## Requirements
 
 ### Requirement: Click insertion follows selection
 When a user clicks a palette item, the system SHALL insert the new field either immediately after the currently selected canvas component (when exactly one component is selected) or at the end of the canvas field list (when no component is selected). The inserted field SHALL carry the palette entry's `subtype` when present (Email/URL/Number/Password/Text input entries) so the created `FieldMeta` has the correct `subtype`.

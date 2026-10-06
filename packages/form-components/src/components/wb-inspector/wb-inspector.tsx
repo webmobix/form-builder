@@ -232,8 +232,8 @@ export class WbInspector {
         </label>
 
         <label class="field-group field-group--checkbox">
-          <span class="field-label">Required</span>
           <input type="checkbox" class="checkbox" checked={!!f.required} onChange={this.onRequiredChange} />
+          <span class="field-label">Required</span>
         </label>
 
         <div class="field-group">
@@ -290,8 +290,8 @@ export class WbInspector {
 
         {isText && subtype === 'text' && (
           <label class="field-group field-group--checkbox">
-            <span class="field-label">Multiline</span>
             <input type="checkbox" class="checkbox" checked={!!f.multiline} onChange={this.onMultilineChange} />
+            <span class="field-label">Multiline</span>
           </label>
         )}
 

@@ -1,4 +1,10 @@
-## ADDED Requirements
+# palette-drag Specification
+
+## Purpose
+
+Lets desktop users drag a field type from the palette onto the canvas, with touch devices falling back to the existing tap-to-add behavior.
+
+## Requirements
 
 ### Requirement: Desktop drag initiation from palette
 The system SHALL allow a user on a fine-pointer (desktop) input device to press and hold on a palette item and begin dragging that field type toward the canvas. Drag initiation SHALL be gated to fine-pointer or mouse input; coarse-pointer (touch) interactions SHALL fall through to the existing tap-to-add behavior and SHALL NOT start a drag.
