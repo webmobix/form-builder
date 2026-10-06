@@ -871,6 +871,37 @@ describe('wb-canvas realistic preview rendering', () => {
   });
 });
 
+describe('wb-canvas inert element bodies', () => {
+  it('tags a data field body as inert and leaves a row container body untouched', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      { id: 1, type: 'text', label: 'Name' },
+      { id: 2, kind: 'design', type: 'text', label: 'Row', designType: 'row', columns: 2, children: [[], []] },
+    ]);
+    await waitForChanges();
+    const dataEl = root.shadowRoot!.querySelector('[data-element-id="1"]') as HTMLElement;
+    const rowEl = root.shadowRoot!.querySelector('[data-element-id="2"]') as HTMLElement;
+    expect(dataEl.querySelector('.element-body')!.classList.contains('element-body--inert')).toBe(true);
+    expect(rowEl.querySelector('.element-body')!.classList.contains('element-body--inert')).toBe(false);
+  });
+
+  it('keeps the grip and delete button as direct children of the element, outside the inert body', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([{ id: 1, type: 'text', label: 'Name' }]);
+    await waitForChanges();
+    const el = root.shadowRoot!.querySelector('[data-element-id="1"]') as HTMLElement;
+    const body = el.querySelector('.element-body') as HTMLElement;
+    const grip = el.querySelector('.grip') as HTMLElement;
+    const remove = el.querySelector('.remove-btn') as HTMLElement;
+    expect(grip.parentElement).toBe(el);
+    expect(remove.parentElement).toBe(el);
+    expect(body.contains(grip)).toBe(false);
+    expect(body.contains(remove)).toBe(false);
+  });
+});
+
 describe('wb-canvas reorder drag indicator', () => {
   /** Point events carry coordinates; mock-doc needs them defined explicitly. */
   function createPointerEvent(type: string, init: Partial<PointerEventInit> = {}): Event {

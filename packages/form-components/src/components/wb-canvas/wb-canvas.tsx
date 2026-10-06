@@ -688,7 +688,7 @@ export class WbCanvas {
         >
           ×
         </button>
-        <div class="element-body">{body}</div>
+        <div class={{ 'element-body': true, 'element-body--inert': !isRow }}>{body}</div>
       </div>
     );
   }

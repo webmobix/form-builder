@@ -171,6 +171,15 @@
   min-width: 0;
 }
 
+/* Leaf preview bodies are inert: dropping the subtree from hit-testing lets the
+   cursor be computed from the `.canvas-element` wrapper (`pointer`) even over
+   disabled controls and labels inside `wb-form-field`'s shadow DOM, and routes
+   clicks to the element wrapper so click-to-select works. Row container bodies
+   intentionally omit this modifier so nested elements stay interactive. */
+.element-body--inert {
+  pointer-events: none;
+}
+
 /* Realistic design-element typography mirroring wb-form-renderer.css. */
 .preview-heading {
   margin: 0;
