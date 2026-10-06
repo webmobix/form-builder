@@ -1,6 +1,6 @@
 // biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
-import { Component, Event, type EventEmitter, h, Method, Prop, State } from '@stencil/core';
-import type { FieldMeta, FieldSubtype, FieldType } from '../../core';
+import { Component, Event, type EventEmitter, h, Method, Prop, State, Watch } from '@stencil/core';
+import type { FieldMeta, FieldSubtype, FieldType, InspectorCheckboxEntry, InspectorExtension } from '../../core';
 
 function displayName(type: FieldType, subtype?: FieldSubtype): string {
   if (type === 'select') return 'Dropdown';
@@ -44,6 +44,8 @@ function designDisplayName(designType?: FieldMeta['designType']): string {
 export class WbInspector {
   @Prop({ mutable: true }) field: FieldMeta | null = null;
   @Prop() showDeleteFieldButton: boolean = true;
+  /** Host-supplied per-element-kind extension controls. Set as a JS property or via `setExtension()`. */
+  @Prop({ mutable: true }) extension?: InspectorExtension;
   @State() private localField: FieldMeta | null = null;
   @State() private labelError = '';
 
@@ -55,6 +57,80 @@ export class WbInspector {
     this.field = field;
     this.localField = field ? { ...field } : null;
     this.labelError = '';
+    this.seedMissingKeys();
+  }
+
+  @Method()
+  async setExtension(shape?: InspectorExtension) {
+    this.extension = shape;
+  }
+
+  @Watch('extension')
+  onExtensionChange() {
+    this.seedMissingKeys();
+  }
+
+  /**
+   * Option A: on selection (and when the shape changes) seed every declared
+   * checkbox key missing from `metadata` with its `defaultState`. Emits one
+   * `wbFieldUpdated` with the complete map only when something was seeded.
+   */
+  private seedMissingKeys() {
+    const f = this.localField;
+    if (!f) return;
+    const sections = this.declaredSections(f);
+    if (sections.length === 0) return;
+    const metadata = { ...(f.metadata ?? {}) };
+    let changed = false;
+    for (const section of sections) {
+      for (const entry of section.fields) {
+        if (entry.type !== 'checkbox') continue;
+        if (metadata[entry.key] === undefined) {
+          metadata[entry.key] = entry.defaultState ?? false;
+          changed = true;
+        }
+      }
+    }
+    if (!changed) return;
+    this.localField = { ...f, metadata };
+    this.emitPatch({ metadata });
+  }
+
+  private declaredSections(f: FieldMeta) {
+    const shape = this.extension;
+    if (!shape) return [];
+    return (f.kind === 'design' ? shape.design : shape.data) ?? [];
+  }
+
+  private checkboxChecked(entry: InspectorCheckboxEntry, f: FieldMeta): boolean {
+    const value = f.metadata?.[entry.key];
+    return value === undefined ? (entry.defaultState ?? false) : !!value;
+  }
+
+  private onExtensionToggle = (key: string, e: Event) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    const metadata = { ...(this.localField?.metadata ?? {}), [key]: checked };
+    this.localField = { ...this.localField!, metadata };
+    this.emitPatch({ metadata });
+  };
+
+  private renderExtensionSections(f: FieldMeta) {
+    const sections = this.declaredSections(f);
+    if (sections.length === 0) return null;
+    return sections.map((section, sectionIndex) => (
+      // biome-ignore lint/suspicious/noArrayIndexKey: section titles are optional and may duplicate
+      <div class="extension-section" key={sectionIndex}>
+        {section.title && <h4 class="extension-section__title">{section.title}</h4>}
+        {section.fields.map(entry =>
+          entry.type === 'checkbox' ? (
+            <label class="field-group field-group--checkbox" key={entry.key}>
+              <input type="checkbox" class="checkbox" checked={this.checkboxChecked(entry, f)} onChange={e => this.onExtensionToggle(entry.key, e)} />
+              <span class="field-label">{entry.label}</span>
+            </label>
+          ) : null,
+        )}
+      </div>
+    ));
   }
 
   private emitPatch(patch: Partial<FieldMeta>) {
@@ -207,6 +283,8 @@ export class WbInspector {
             </label>
           )}
 
+          {this.renderExtensionSections(f)}
+
           {this.showDeleteFieldButton !== false && (
             <button type="button" class="delete-btn" onClick={this.onDeleteClick}>
               Delete
@@ -307,6 +385,8 @@ export class WbInspector {
             </label>
           </div>
         )}
+
+        {this.renderExtensionSections(f)}
 
         {this.showDeleteFieldButton !== false && (
           <button type="button" class="delete-btn" onClick={this.onDeleteClick}>

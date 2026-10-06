@@ -171,3 +171,20 @@ textarea.input {
   outline: none;
   box-shadow: 0 0 0 1px #e53e3e;
 }
+
+.extension-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e4e4e0;
+}
+
+.extension-section__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

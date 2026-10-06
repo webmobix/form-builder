@@ -1,7 +1,7 @@
 // biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
 import { h } from '@stencil/core';
 import { render } from '@stencil/vitest';
-import type { FieldMeta } from '../../core';
+import type { FieldMeta, InspectorExtension } from '../../core';
 
 // Importing the source file triggers the on-the-fly compile + customElements.define()
 import './wb-inspector';
@@ -485,5 +485,268 @@ describe('wb-inspector delete button', () => {
     (root.shadowRoot!.querySelector('.delete-btn') as HTMLButtonElement).click();
     await waitForChanges();
     expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { id: 12 } }));
+  });
+});
+
+const dataAndDesignShape: InspectorExtension = {
+  data: [{ title: 'Data extras', fields: [{ type: 'checkbox', key: 'pii', label: 'Contains PII' }] }],
+  design: [{ title: 'Design extras', fields: [{ type: 'checkbox', key: 'decorative', label: 'Decorative' }] }],
+};
+
+const extensionCheckboxes = (root: HTMLElement) => Array.from(root.shadowRoot!.querySelectorAll('.extension-section .field-group--checkbox')) as HTMLElement[];
+
+const extensionCheckboxByLabel = (root: HTMLElement, label: string) =>
+  extensionCheckboxes(root)
+    .find(group => group.textContent?.includes(label))
+    ?.querySelector('input[type="checkbox"]') as HTMLInputElement | undefined;
+
+describe('wb-inspector extension shape', () => {
+  it('sets the shape via setExtension and renders the selected element kind', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension(dataAndDesignShape);
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(root.shadowRoot!.textContent).toContain('Data extras');
+    expect(root.shadowRoot!.textContent).not.toContain('Design extras');
+    expect(root.shadowRoot!.textContent).toContain('Contains PII');
+  });
+
+  it('sets the shape via the extension property', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    inspector.extension = dataAndDesignShape;
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(root.shadowRoot!.textContent).toContain('Data extras');
+  });
+
+  it('renders no sections when no shape is supplied', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelectorAll('.extension-section').length).toBe(0);
+  });
+
+  it('renders no sections when the shape is empty', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension({});
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelectorAll('.extension-section').length).toBe(0);
+  });
+
+  it('renders data sections only for a data element', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension(dataAndDesignShape);
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(extensionCheckboxByLabel(root, 'Contains PII')).toBeTruthy();
+    expect(extensionCheckboxByLabel(root, 'Decorative')).toBeUndefined();
+  });
+
+  it('renders design sections only for a design element', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension(dataAndDesignShape);
+    await inspector.setField({ id: 2, kind: 'design', type: 'text', label: 'Intro', designType: 'paragraph', text: '' });
+    await waitForChanges();
+    expect(extensionCheckboxByLabel(root, 'Decorative')).toBeTruthy();
+    expect(extensionCheckboxByLabel(root, 'Contains PII')).toBeUndefined();
+    expect(root.shadowRoot!.textContent).toContain('Design extras');
+  });
+
+  it('renders no sections when no element is selected', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension(dataAndDesignShape);
+    await waitForChanges();
+    expect(root.shadowRoot!.querySelectorAll('.extension-section').length).toBe(0);
+  });
+
+  it('renders the section title as a heading', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension(dataAndDesignShape);
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    const title = root.shadowRoot!.querySelector('.extension-section__title');
+    expect(title?.textContent).toBe('Data extras');
+  });
+
+  it('renders every declared entry with no conditional hiding', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension({
+      data: [
+        {
+          fields: [
+            { type: 'checkbox', key: 'a', label: 'Alpha' },
+            { type: 'checkbox', key: 'b', label: 'Beta' },
+          ],
+        },
+      ],
+    });
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(extensionCheckboxes(root).length).toBe(2);
+  });
+
+  it('ignores an unrecognized entry type while rendering supported entries', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const shape = {
+      data: [
+        {
+          fields: [
+            { type: 'checkbox', key: 'pii', label: 'Contains PII' },
+            { type: 'future-kind', key: 'x', label: 'Future' },
+          ],
+        },
+      ],
+    } as unknown as InspectorExtension;
+    await inspector.setExtension(shape);
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(extensionCheckboxByLabel(root, 'Contains PII')).toBeTruthy();
+    expect(root.shadowRoot!.textContent).not.toContain('Future');
+    expect(extensionCheckboxes(root).length).toBe(1);
+  });
+
+  it('renders checked when metadata[key] is true', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension(dataAndDesignShape);
+    await inspector.setField({ id: 1, type: 'text', label: 'Name', metadata: { pii: true } });
+    await waitForChanges();
+    expect(extensionCheckboxByLabel(root, 'Contains PII')?.checked).toBe(true);
+  });
+
+  it('renders unchecked when stored false overrides a true default', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension({ data: [{ fields: [{ type: 'checkbox', key: 'pii', label: 'Contains PII', defaultState: true }] }] });
+    await inspector.setField({ id: 1, type: 'text', label: 'Name', metadata: { pii: false } });
+    await waitForChanges();
+    expect(extensionCheckboxByLabel(root, 'Contains PII')?.checked).toBe(false);
+  });
+
+  it('renders checked when the value is undefined and defaultState is true', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension({ data: [{ fields: [{ type: 'checkbox', key: 'pii', label: 'Contains PII', defaultState: true }] }] });
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(extensionCheckboxByLabel(root, 'Contains PII')?.checked).toBe(true);
+  });
+
+  it('renders unchecked when the value is undefined and defaultState is absent', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension(dataAndDesignShape);
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(extensionCheckboxByLabel(root, 'Contains PII')?.checked).toBe(false);
+  });
+});
+
+describe('wb-inspector extension metadata', () => {
+  it('seeds missing keys in a single event when an element is selected', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    await inspector.setExtension({
+      data: [
+        {
+          fields: [
+            { type: 'checkbox', key: 'pii', label: 'Contains PII', defaultState: true },
+            { type: 'checkbox', key: 'archived', label: 'Archived' },
+          ],
+        },
+      ],
+    });
+    await inspector.setField({ id: 7, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { id: 7, patch: { metadata: { pii: true, archived: false } } } }));
+  });
+
+  it('does not emit on selection when metadata already contains every declared key', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    await inspector.setExtension(dataAndDesignShape);
+    await inspector.setField({ id: 7, type: 'text', label: 'Name', metadata: { pii: false } });
+    await waitForChanges();
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('seeds false for a missing key with no defaultState', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    await inspector.setExtension(dataAndDesignShape);
+    await inspector.setField({ id: 7, type: 'text', label: 'Name' });
+    await waitForChanges();
+    expect(spy.mock.calls[0][0].detail.patch.metadata).toEqual({ pii: false });
+  });
+
+  it('seeds newly declared keys and emits once when the shape changes while selected', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension({ data: [{ fields: [{ type: 'checkbox', key: 'a', label: 'A' }] }] });
+    await inspector.setField({ id: 7, type: 'text', label: 'Name', metadata: { a: false } });
+    await waitForChanges();
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    await inspector.setExtension({
+      data: [
+        {
+          fields: [
+            { type: 'checkbox', key: 'a', label: 'A' },
+            { type: 'checkbox', key: 'b', label: 'B', defaultState: true },
+          ],
+        },
+      ],
+    });
+    await waitForChanges();
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { id: 7, patch: { metadata: { a: false, b: true } } } }));
+  });
+
+  it('emits a metadata patch when a checkbox is toggled', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension(dataAndDesignShape);
+    await inspector.setField({ id: 7, type: 'text', label: 'Name', metadata: { pii: false } });
+    await waitForChanges();
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    const checkbox = extensionCheckboxByLabel(root, 'Contains PII')!;
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+    await waitForChanges();
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { id: 7, patch: { metadata: { pii: true } } } }));
+  });
+
+  it('preserves undeclared metadata keys in the toggled map', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setExtension(dataAndDesignShape);
+    await inspector.setField({ id: 7, type: 'text', label: 'Name', metadata: { pii: false, legacy: 'keep' } });
+    await waitForChanges();
+    const spy = vi.fn();
+    root.addEventListener('wbFieldUpdated', spy);
+    const checkbox = extensionCheckboxByLabel(root, 'Contains PII')!;
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+    await waitForChanges();
+    expect(spy.mock.calls[0][0].detail.patch.metadata).toEqual({ pii: true, legacy: 'keep' });
   });
 });

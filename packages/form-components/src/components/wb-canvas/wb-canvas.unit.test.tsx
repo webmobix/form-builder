@@ -428,6 +428,26 @@ describe('wb-canvas selection and update API', () => {
     expect(wbChangeSpy).toHaveBeenCalled();
   });
 
+  it('applies a metadata patch and emits wbChange, preserving undeclared keys the caller includes', async () => {
+    const { root, instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([{ id: 1, type: 'text', label: 'Name', metadata: { pii: false, legacy: 'keep' } }]);
+    const wbChangeSpy = vi.fn();
+    root.addEventListener('wbChange', wbChangeSpy);
+
+    await canvas.updateField(1, { metadata: { pii: true, legacy: 'keep' } });
+    expect(canvas.fields[0].metadata).toEqual({ pii: true, legacy: 'keep' });
+    expect(wbChangeSpy).toHaveBeenCalledWith(expect.objectContaining({ detail: [expect.objectContaining({ id: 1, metadata: { pii: true, legacy: 'keep' } })] }));
+  });
+
+  it('replaces the metadata map wholesale, dropping keys the patch omits', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([{ id: 1, type: 'text', label: 'Name', metadata: { pii: false, legacy: 'keep' } }]);
+    await canvas.updateField(1, { metadata: { pii: true } });
+    expect(canvas.fields[0].metadata).toEqual({ pii: true });
+  });
+
   it('renders a select preview that forwards options to wb-form-field', async () => {
     const { root, instance, waitForChanges } = await render(<wb-canvas></wb-canvas>);
     const canvas = instance as any;
@@ -632,6 +652,21 @@ describe('wb-canvas importState', () => {
     expect(canvas.fields).toEqual(payload);
     expect(canvas.fields.map((f: FieldMeta) => f.label)).toEqual(['First', 'Subscribe']);
     expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: payload }));
+  });
+
+  it('preserves metadata exactly across a JSON export/import round-trip, including undeclared keys', async () => {
+    const { instance } = await render(<wb-canvas></wb-canvas>);
+    const canvas = instance as any;
+    await canvas.importState([
+      { id: 1, type: 'text', label: 'Name', metadata: { pii: true, legacy: 'keep' } },
+      { id: 2, kind: 'design', type: 'text', label: 'Intro', designType: 'paragraph', text: 'Hi', metadata: { decorative: false, extra: { nested: true } } },
+    ]);
+    const exported = JSON.stringify(canvas.fields);
+    await canvas.importState(JSON.parse(exported));
+    expect(canvas.fields.map((f: FieldMeta) => f.metadata)).toEqual([
+      { pii: true, legacy: 'keep' },
+      { decorative: false, extra: { nested: true } },
+    ]);
   });
 
   it('import replaces existing canvas contents wholesale', async () => {

@@ -361,4 +361,21 @@ describe('wb-form-renderer', () => {
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { 'field.13': 'Alice' } }));
   });
+
+  it('ignores metadata and renders the same wb-form-field output as without it', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-renderer></wb-form-renderer>);
+    const renderer = instance as any;
+    await renderer.setFields([
+      { id: 1, type: 'text', label: 'Name', placeholder: 'Jane' },
+      { id: 2, type: 'text', label: 'Name', placeholder: 'Jane', metadata: { pii: true } },
+    ]);
+    await waitForChanges();
+    const fields = Array.from(root.shadowRoot!.querySelectorAll('wb-form-field')) as any[];
+    expect(fields.length).toBe(2);
+    for (const key of ['label', 'type', 'subtype', 'placeholder']) {
+      expect(fields[1][key]).toEqual(fields[0][key]);
+    }
+    expect(fields[1].metadata).toBeUndefined();
+    expect(fields[1].getAttribute('metadata')).toBeNull();
+  });
 });

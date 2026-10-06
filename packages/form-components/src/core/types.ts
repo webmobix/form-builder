@@ -91,6 +91,44 @@ export interface FieldMeta {
   text?: string;
   columns?: number;
   children?: FieldMeta[][];
+  /**
+   * Presentation-only extension data owned by the host and keyed by each
+   * `InspectorExtension` entry's `key`. It is ignored by validation and by
+   * `wb-form-renderer`, does not change the submitted value, and is preserved
+   * across canvas patches and export/import. Omitted for elements with no
+   * extension values.
+   */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * A single host-declared inspector control. The `type` discriminator keeps the
+ * union open: future entry kinds are added as new members without changing the
+ * section or shape structure.
+ */
+export interface InspectorCheckboxEntry {
+  type: 'checkbox';
+  /** Metadata key this entry reads from and writes to (`metadata[key]`). */
+  key: string;
+  label: string;
+  /** Value seeded when the key is missing; absent means `false` (unchecked). */
+  defaultState?: boolean;
+}
+
+export type InspectorExtensionEntry = InspectorCheckboxEntry;
+
+/** An ordered group of extension entries rendered under an optional heading. */
+export interface InspectorExtensionSection {
+  title?: string;
+  fields: InspectorExtensionEntry[];
+}
+
+/** Host-supplied extension controls, split by element kind. */
+export interface InspectorExtension {
+  /** Sections rendered for data elements (`kind` absent or `'data'`). */
+  data?: InspectorExtensionSection[];
+  /** Sections rendered for design-only elements (`kind === 'design'`). */
+  design?: InspectorExtensionSection[];
 }
 
 export const defaultColumns = 2;

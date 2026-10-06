@@ -5,9 +5,9 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { FieldMeta, FieldSubtype, FieldType, Restrictions } from "./core";
+import { FieldMeta, FieldSubtype, FieldType, InspectorExtension, Restrictions } from "./core";
 import { FieldTypeDef } from "./components/wb-palette/wb-palette";
-export { FieldMeta, FieldSubtype, FieldType, Restrictions } from "./core";
+export { FieldMeta, FieldSubtype, FieldType, InspectorExtension, Restrictions } from "./core";
 export { FieldTypeDef } from "./components/wb-palette/wb-palette";
 export namespace Components {
     /**
@@ -92,9 +92,14 @@ export namespace Components {
     }
     interface WbInspector {
         /**
+          * Host-supplied per-element-kind extension controls. Set as a JS property or via `setExtension()`.
+         */
+        "extension"?: InspectorExtension;
+        /**
           * @default null
          */
         "field": FieldMeta | null;
+        "setExtension": (shape?: InspectorExtension) => Promise<void>;
         "setField": (field: FieldMeta | null) => Promise<void>;
         /**
           * @default true
@@ -305,6 +310,10 @@ declare namespace LocalJSX {
         "onWbSubmit"?: (event: WbFormRendererCustomEvent<Record<string, string>>) => void;
     }
     interface WbInspector {
+        /**
+          * Host-supplied per-element-kind extension controls. Set as a JS property or via `setExtension()`.
+         */
+        "extension"?: InspectorExtension;
         /**
           * @default null
          */
