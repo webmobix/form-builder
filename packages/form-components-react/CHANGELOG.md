@@ -1,5 +1,13 @@
 # @webmobix/form-components-react
 
+## 0.5.1
+
+### Patch Changes
+
+- eedeb13: Fix publishing flow
+- Updated dependencies [eedeb13]
+  - @webmobix/form-components@0.8.1
+
 ## 0.5.0
 
 ### Minor Changes

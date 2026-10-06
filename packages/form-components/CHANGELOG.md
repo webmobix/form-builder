@@ -1,5 +1,11 @@
 # @webmobix/form-components
 
+## 0.8.1
+
+### Patch Changes
+
+- eedeb13: Fix publishing flow
+
 ## 0.8.0
 
 ### Minor Changes
