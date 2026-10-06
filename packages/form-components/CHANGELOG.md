@@ -1,5 +1,11 @@
 # @webmobix/form-components
 
+## 0.9.0
+
+### Minor Changes
+
+- 827a04d: Make inspector labels for fields and checkboxes seperate styleable through CSS vars
+
 ## 0.8.1
 
 ### Patch Changes

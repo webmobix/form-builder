@@ -1,5 +1,16 @@
 # @webmobix/form-components-react
 
+## 0.6.0
+
+### Minor Changes
+
+- 827a04d: Make inspector labels for fields and checkboxes seperate styleable through CSS vars
+
+### Patch Changes
+
+- Updated dependencies [827a04d]
+  - @webmobix/form-components@0.9.0
+
 ## 0.5.1
 
 ### Patch Changes
