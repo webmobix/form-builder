@@ -38,13 +38,12 @@ describe('richtext builder surfaces', () => {
     expect(canvas.fields[canvas.fields.length - 1].type).toBe('richtext');
   });
 
-  it('inspector shows Rich text display name with Placeholder and Max Length controls', async () => {
+  it('inspector shows Placeholder and Max Length controls for richtext', async () => {
     const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
     const inspector = instance as any;
     await inspector.setField({ id: 7, type: 'richtext', label: 'Bio' });
     await waitForChanges();
 
-    expect(root.shadowRoot!.querySelector('.field-display')!.textContent).toBe('Rich text');
     const textInputs = Array.from(root.shadowRoot!.querySelectorAll('input[type="text"]')) as HTMLInputElement[];
     const placeholderInput = textInputs.find(i => (i.closest('.field-group') as HTMLElement)?.textContent?.includes('Placeholder'));
     expect(placeholderInput).toBeDefined();

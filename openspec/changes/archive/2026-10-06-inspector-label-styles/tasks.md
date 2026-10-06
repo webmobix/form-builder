@@ -1,0 +1,18 @@
+# Tasks
+
+## 1. Label class hooks and "Field" display removal (TSX)
+
+- [x] 1.1 Add the `field-label--checkbox` modifier to the label spans rendered beside checkboxes in `wb-inspector.tsx`: the "Required" toggle, the "Multiline" toggle, and `renderExtensionSections` extension checkboxes. Leave the base `field-label` class on every label. Verify by rendering a data field and a checkbox and confirming the checkbox label spans carry both `field-label` and `field-label--checkbox`.
+- [x] 1.2 Remove the data-field read-only "Field" block (`<span class="field-label">Field</span><span class="field-display">...`) from the `render()` data-field branch, then delete the now-unused `displayName()` helper and the `FieldType`/`FieldSubtype` type imports. Verify `pnpm lint` reports no unused imports and that the design-element "Element" display still renders (`.field-display`) for heading/paragraph/row elements.
+- [x] 1.3 Update `wb-inspector.unit.test.tsx`: delete the "shows the read-only Field display name for each subtype" test, and add assertions that checkbox labels use `field-label--checkbox` while stacked labels above inputs use plain `field-label` (and that the data-field panel no longer contains the text `Text input`/`Dropdown`). Verify with `pnpm --filter @webmobix/form-components test` (unit project).
+
+## 2. Distinct label styles and CSS custom properties (CSS + docs)
+
+- [x] 2.1 In `wb-inspector.css`, convert the `.field-label` rule into the stacked field-label style sourced from `--wb-inspector-field-label-color`, `--wb-inspector-field-label-font-size`, `--wb-inspector-field-label-font-weight`, and `--wb-inspector-field-label-letter-spacing`, with provisional fallbacks `#0a0a0a`, `14px`, `600`, `0.5px`. Verify the browser test suite (`pnpm --filter @webmobix/form-components test`, browser project) still passes its inspector container assertions.
+- [x] 2.2 Add a `.field-label--checkbox` rule in `wb-inspector.css` sourced from `--wb-inspector-checkbox-label-color`, `--wb-inspector-checkbox-label-font-size`, `--wb-inspector-checkbox-label-font-weight`, and `--wb-inspector-checkbox-label-letter-spacing`. The color and font-size fallbacks SHALL reference the field-label vars (`var(--wb-inspector-field-label-color, #0a0a0a)` and `var(--wb-inspector-field-label-font-size, 14px)`), while font-weight and letter-spacing use distinct provisional fallbacks (`400`, `normal`). Verify the two rules resolve to different font-weight and letter-spacing.
+- [x] 2.3 Add a browser computed-style test in `wb-inspector.cmp.test.tsx` that loads a field, asserts a stacked label and a checkbox label differ in font-weight/letter-spacing by default, asserts `--wb-inspector-field-label-color` cascades to both label kinds, and asserts `--wb-inspector-checkbox-label-color` / `--wb-inspector-checkbox-label-font-weight` override only the checkbox label. Verify with `pnpm --filter @webmobix/form-components test` (browser project).
+- [x] 2.4 Document all eight new label CSS custom properties in `wb-inspector/readme.md` (field-label and checkbox-label color, font-size, font-weight, letter-spacing) with names, provisional fallback values, and descriptions, noting that the checkbox color and font-size fallbacks are `var(--wb-inspector-field-label-...)` and therefore inherit field-label overrides. Verify the readme table lists every property and that `pnpm lint` passes.
+
+## 3. Integration verification
+
+- [x] 3.1 Run `pnpm --filter @webmobix/form-components test` and `pnpm lint` from the repo root and confirm both pass, then manually confirm no rendered output references the removed data-field "Field" type name while the design-element "Element" display remains.

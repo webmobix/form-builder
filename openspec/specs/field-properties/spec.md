@@ -33,7 +33,7 @@ The inspector SHALL provide an editable label input bound to the selected field'
 - **THEN** the inspector SHALL NOT emit an update with an empty label and SHALL show a validation error on the label input
 
 ### Requirement: Editable type propagated to the canvas
-The inspector SHALL NOT provide a type selector. A field's `type` is fixed at creation time (by the palette entry used to add it) and cannot be changed from the inspector. The inspector SHALL show a read-only display name (see "Read-only field display name") instead of any `type` mutation control.
+The inspector SHALL NOT provide a type selector. A field's `type` is fixed at creation time (by the palette entry used to add it) and cannot be changed from the inspector. The inspector SHALL NOT render any read-only `type` display line.
 
 #### Scenario: No type selector is rendered
 - **WHEN** any field is selected in the inspector
@@ -44,7 +44,7 @@ The inspector SHALL NOT provide a type selector. A field's `type` is fixed at cr
 - **THEN** there is no control to change the field's `type` to a non-text type; switching type requires deleting and re-adding the field from the palette
 
 ### Requirement: Editable subtype for text fields
-The inspector SHALL NOT provide a subtype selector. A text field's `subtype` is fixed at creation time (by the palette entry used to add it) and cannot be changed from the inspector. The inspector SHALL derive the field's display name from its fixed `type` and `subtype` (see "Read-only field display name").
+The inspector SHALL NOT provide a subtype selector. A text field's `subtype` is fixed at creation time (by the palette entry used to add it) and cannot be changed from the inspector. The inspector SHALL NOT render a read-only display name derived from the field's fixed `type` and `subtype`.
 
 #### Scenario: No subtype selector is rendered for text fields
 - **WHEN** the selected field's type is `text`
@@ -57,37 +57,6 @@ The inspector SHALL NOT provide a subtype selector. A text field's `subtype` is 
 #### Scenario: Switching subtype is no longer an inspector action
 - **WHEN** the user is editing a text field in the inspector
 - **THEN** there is no control to change the field's `subtype`; switching subtype requires deleting and re-adding the field from the palette
-
-### Requirement: Read-only field display name in the inspector
-The inspector SHALL render a read-only "Field" display line showing a friendly name derived from the selected field's `type` and `subtype`. The mapping SHALL be: `text`+`text` (or unset) → "Text input", `text`+`email` → "Email", `text`+`url` → "URL", `text`+`number` → "Number", `text`+`password` → "Password", `text`+`tel` → "Telephone", `select` → "Dropdown", `date` → "Date", `checkbox` → "Checkbox", `richtext` → "Rich text". The display SHALL NOT be an interactive control and SHALL NOT emit a patch.
-
-#### Scenario: Email field shows "Email"
-- **WHEN** the selected field has `type: 'text'` and `subtype: 'email'`
-- **THEN** the inspector's read-only "Field" display shows "Email"
-
-#### Scenario: Password field shows "Password"
-- **WHEN** the selected field has `type: 'text'` and `subtype: 'password'`
-- **THEN** the inspector's read-only "Field" display shows "Password"
-
-#### Scenario: URL field shows "URL"
-- **WHEN** the selected field has `type: 'text'` and `subtype: 'url'`
-- **THEN** the inspector's read-only "Field" display shows "URL"
-
-#### Scenario: Plain text field shows "Text input"
-- **WHEN** the selected field's `type: 'text'` and `subtype` is `'text'` or unset
-- **THEN** the inspector's read-only "Field" display shows "Text input"
-
-#### Scenario: Dropdown field shows "Dropdown"
-- **WHEN** the selected field's type is `select`
-- **THEN** the inspector's read-only "Field" display shows "Dropdown"
-
-#### Scenario: Rich text field shows "Rich text"
-- **WHEN** the selected field's type is `richtext`
-- **THEN** the inspector's read-only "Field" display shows "Rich text"
-
-#### Scenario: Display name is not editable
-- **WHEN** the user interacts with the "Field" display line
-- **THEN** no control emits a patch and the field's `type`/`subtype` are unchanged
 
 ### Requirement: Type and subtype-specific restrictions
 The inspector SHALL render restriction inputs conditionally based on the field's fixed `type` and `subtype`. For `subtype === 'number'`, the inspector SHALL provide `min`, `max`, and `step` numeric inputs. For text-like subtypes (`text`, `email`, `url`, `password`, `tel`, or unset), the inspector SHALL provide a `maxLength` numeric input. Fields whose type is `richtext` SHALL also provide a `maxLength` numeric input, stored under the shared text restrictions key. Restrictions SHALL be stored on the field and propagated to the canvas. The restriction inputs SHALL remain editable; only the type/subtype selectors were removed.
@@ -415,3 +384,18 @@ Within `wb-inspector`, every checkbox toggle row SHALL render its checkbox contr
 #### Scenario: metadata does not affect validation or rendering
 - **WHEN** an element with metadata is validated or rendered
 - **THEN** the metadata does not change validity, the submitted value, or the rendered output
+
+### Requirement: Inspector distinguishes stacked field labels from checkbox labels
+Labels rendered above an input SHALL use a stacked label style and SHALL carry a stacked class hook. Labels rendered beside a checkbox SHALL use a distinct inline checkbox-label style and SHALL carry a separate checkbox class hook. The two styles SHALL be visually distinguishable, and each SHALL be targetable independently so hosts can theme them separately (see the `wb-inspector-css-vars` capability for the exposed custom properties).
+
+#### Scenario: A label above an input uses the stacked style
+- **WHEN** a data field or design element is selected and the inspector renders a label above an input or read-only display
+- **THEN** that label uses the stacked label class and stacked style
+
+#### Scenario: Checkbox labels use the inline style
+- **WHEN** the inspector renders the "Required" toggle, the "Multiline" toggle, or an extension checkbox
+- **THEN** the label text beside the checkbox uses the checkbox label class and the inline checkbox-label style
+
+#### Scenario: The two label styles are visually distinguishable
+- **WHEN** a screen renders both a stacked field label and a checkbox label with no host overrides
+- **THEN** the two labels do not share an identical font weight and letter-spacing

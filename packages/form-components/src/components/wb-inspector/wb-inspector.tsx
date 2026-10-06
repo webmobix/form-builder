@@ -1,27 +1,6 @@
 // biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
 import { Component, Event, type EventEmitter, h, Method, Prop, State, Watch } from '@stencil/core';
-import type { FieldMeta, FieldSubtype, FieldType, InspectorCheckboxEntry, InspectorExtension } from '../../core';
-
-function displayName(type: FieldType, subtype?: FieldSubtype): string {
-  if (type === 'select') return 'Dropdown';
-  if (type === 'date') return 'Date';
-  if (type === 'checkbox') return 'Checkbox';
-  if (type === 'richtext') return 'Rich text';
-  switch (subtype) {
-    case 'email':
-      return 'Email';
-    case 'url':
-      return 'URL';
-    case 'number':
-      return 'Number';
-    case 'password':
-      return 'Password';
-    case 'tel':
-      return 'Telephone';
-    default:
-      return 'Text input';
-  }
-}
+import type { FieldMeta, InspectorCheckboxEntry, InspectorExtension } from '../../core';
 
 function designDisplayName(designType?: FieldMeta['designType']): string {
   switch (designType) {
@@ -125,7 +104,7 @@ export class WbInspector {
           entry.type === 'checkbox' ? (
             <label class="field-group field-group--checkbox" key={entry.key}>
               <input type="checkbox" class="checkbox" checked={this.checkboxChecked(entry, f)} onChange={e => this.onExtensionToggle(entry.key, e)} />
-              <span class="field-label">{entry.label}</span>
+              <span class="field-label field-label--checkbox">{entry.label}</span>
             </label>
           ) : null,
         )}
@@ -311,13 +290,8 @@ export class WbInspector {
 
         <label class="field-group field-group--checkbox">
           <input type="checkbox" class="checkbox" checked={!!f.required} onChange={this.onRequiredChange} />
-          <span class="field-label">Required</span>
+          <span class="field-label field-label--checkbox">Required</span>
         </label>
-
-        <div class="field-group">
-          <span class="field-label">Field</span>
-          <span class="field-display">{displayName(f.type, f.subtype)}</span>
-        </div>
 
         {f.type === 'select' && (
           <div class="options-editor">
@@ -369,7 +343,7 @@ export class WbInspector {
         {isText && subtype === 'text' && (
           <label class="field-group field-group--checkbox">
             <input type="checkbox" class="checkbox" checked={!!f.multiline} onChange={this.onMultilineChange} />
-            <span class="field-label">Multiline</span>
+            <span class="field-label field-label--checkbox">Multiline</span>
           </label>
         )}
 

@@ -1,7 +1,7 @@
 // biome-ignore lint/correctness/noUnusedImports: `h` is required by Stencil's JSX transform at runtime
 import { h } from '@stencil/core';
 import { render } from '@stencil/vitest';
-import type { FieldMeta, InspectorExtension } from '../../core';
+import type { InspectorExtension } from '../../core';
 
 // Importing the source file triggers the on-the-fly compile + customElements.define()
 import './wb-inspector';
@@ -56,26 +56,34 @@ describe('wb-inspector', () => {
     expect(root.shadowRoot!.querySelectorAll('select').length).toBe(0);
   });
 
-  it('shows the read-only Field display name for each subtype', async () => {
+  it('uses plain field-label for stacked labels and field-label--checkbox for checkbox labels', async () => {
     const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
     const inspector = instance as any;
-    const cases: Array<[Partial<FieldMeta>, string]> = [
-      [{ type: 'text', subtype: 'email' }, 'Email'],
-      [{ type: 'text', subtype: 'password' }, 'Password'],
-      [{ type: 'text', subtype: 'url' }, 'URL'],
-      [{ type: 'text', subtype: 'number' }, 'Number'],
-      [{ type: 'text', subtype: 'text' }, 'Text input'],
-      [{ type: 'text' }, 'Text input'],
-      [{ type: 'select' }, 'Dropdown'],
-      [{ type: 'date' }, 'Date'],
-      [{ type: 'checkbox' }, 'Checkbox'],
-    ];
-    for (const [field, expected] of cases) {
-      await inspector.setField({ id: 1, label: 'X', ...field });
-      await waitForChanges();
-      const display = root.shadowRoot!.querySelector('.field-display') as HTMLElement;
-      expect(display.textContent).toBe(expected);
+    await inspector.setField({ id: 1, type: 'text', label: 'Name' });
+    await waitForChanges();
+
+    const checkboxLabels = Array.from(root.shadowRoot!.querySelectorAll('.field-group--checkbox .field-label')) as HTMLElement[];
+    expect(checkboxLabels.length).toBeGreaterThan(0);
+    for (const label of checkboxLabels) {
+      expect(label.classList.contains('field-label')).toBe(true);
+      expect(label.classList.contains('field-label--checkbox')).toBe(true);
     }
+
+    const stackedLabel = root.shadowRoot!.querySelector('.field-group:not(.field-group--checkbox) .field-label') as HTMLElement;
+    expect(stackedLabel).not.toBeNull();
+    expect(stackedLabel.classList.contains('field-label')).toBe(true);
+    expect(stackedLabel.classList.contains('field-label--checkbox')).toBe(false);
+  });
+
+  it('does not render the read-only data-field type name', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-inspector></wb-inspector>);
+    const inspector = instance as any;
+    await inspector.setField({ id: 1, type: 'text', label: 'X' });
+    await waitForChanges();
+    expect(root.shadowRoot!.textContent).not.toContain('Text input');
+    await inspector.setField({ id: 1, type: 'select', label: 'X' });
+    await waitForChanges();
+    expect(root.shadowRoot!.textContent).not.toContain('Dropdown');
   });
 
   it('shows number restriction inputs for number subtype', async () => {

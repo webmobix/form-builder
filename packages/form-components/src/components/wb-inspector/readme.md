@@ -11,6 +11,16 @@
 | `--wb-inspector-border-radius` | `10px` | Container border radius |
 | `--wb-inspector-padding` | `16px` | Container padding |
 | `--wb-inspector-font-size` | `14px` | Base font size |
+| `--wb-inspector-field-label-color` | `#0a0a0a` | Stacked field label (above an input) and extension section title text color (provisional default) |
+| `--wb-inspector-field-label-font-size` | `14px` | Stacked field label and extension section title font size (provisional default) |
+| `--wb-inspector-field-label-font-weight` | `600` | Stacked field label and extension section title font weight (provisional default) |
+| `--wb-inspector-field-label-letter-spacing` | `0.5px` | Stacked field label and extension section title letter spacing (provisional default) |
+| `--wb-inspector-checkbox-label-color` | `var(--wb-inspector-field-label-color, #0a0a0a)` | Checkbox label (beside a checkbox) text color; falls back to the field-label color (provisional default) |
+| `--wb-inspector-checkbox-label-font-size` | `var(--wb-inspector-field-label-font-size, 14px)` | Checkbox label font size; falls back to the field-label size (provisional default) |
+| `--wb-inspector-checkbox-label-font-weight` | `400` | Checkbox label font weight (provisional default) |
+| `--wb-inspector-checkbox-label-letter-spacing` | `normal` | Checkbox label letter spacing (provisional default) |
+
+The label fallback values are provisional and may be tuned. The extension section headings reuse the `--wb-inspector-field-label-...` properties, so overriding a field-label value also styles section headings. The checkbox label's `color` and `font-size` fallbacks reference the matching `--wb-inspector-field-label-...` property, so overriding a field-label color or font-size also cascades to checkbox labels; set `--wb-inspector-checkbox-label-color` or `--wb-inspector-checkbox-label-font-size` to override checkbox labels independently. The checkbox label's `font-weight` and `letter-spacing` have their own distinct fallbacks, so the two label kinds already look different by default.
 
 The inspector fills `100%` of its host's width and does not enforce a minimum width. Set a width on `<wb-inspector>` to control its size.
 

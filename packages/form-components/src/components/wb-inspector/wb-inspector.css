@@ -33,11 +33,17 @@
 }
 
 .field-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: var(--wb-inspector-field-label-font-size, 14px);
+  font-weight: var(--wb-inspector-field-label-font-weight, 600);
+  color: var(--wb-inspector-field-label-color, #0a0a0a);
+  letter-spacing: var(--wb-inspector-field-label-letter-spacing, 0.5px);
+}
+
+.field-label--checkbox {
+  font-size: var(--wb-inspector-checkbox-label-font-size, var(--wb-inspector-field-label-font-size, 14px));
+  font-weight: var(--wb-inspector-checkbox-label-font-weight, 400);
+  color: var(--wb-inspector-checkbox-label-color, var(--wb-inspector-field-label-color, #0a0a0a));
+  letter-spacing: var(--wb-inspector-checkbox-label-letter-spacing, normal);
 }
 
 .input {
@@ -177,14 +183,14 @@ textarea.input {
   flex-direction: column;
   gap: 8px;
   padding-top: 8px;
-  border-top: 1px solid #e4e4e0;
 }
 
+/* Section headings reuse the stacked field-label properties so extension
+   sections match the surrounding labels and follow the same host overrides. */
 .extension-section__title {
   margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: var(--wb-inspector-field-label-font-size, 14px);
+  font-weight: var(--wb-inspector-field-label-font-weight, 600);
+  color: var(--wb-inspector-field-label-color, #0a0a0a);
+  letter-spacing: var(--wb-inspector-field-label-letter-spacing, 0.5px);
 }
