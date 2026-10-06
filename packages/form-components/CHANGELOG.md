@@ -1,5 +1,11 @@
 # @webmobix/form-components
 
+## 0.10.0
+
+### Minor Changes
+
+- 4649395: better cursor types on hover of fields in canvas
+
 ## 0.9.0
 
 ### Minor Changes

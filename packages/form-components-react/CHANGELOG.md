@@ -1,5 +1,16 @@
 # @webmobix/form-components-react
 
+## 0.7.0
+
+### Minor Changes
+
+- 4649395: better cursor types on hover of fields in canvas
+
+### Patch Changes
+
+- Updated dependencies [4649395]
+  - @webmobix/form-components@0.10.0
+
 ## 0.6.0
 
 ### Minor Changes
