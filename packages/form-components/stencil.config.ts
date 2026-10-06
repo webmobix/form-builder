@@ -1,5 +1,5 @@
 import type { Config } from '@stencil/core';
-// import { reactOutputTarget } from '@stencil/react-output-target';
+import { reactOutputTarget } from '@stencil/react-output-target';
 
 // Tag prefix for every component in this collection is "wb-" (see each
 // @Component({ tag: 'wb-...' }) below). Keep it globally unique to avoid
@@ -27,11 +27,11 @@ export const config: Config = {
       type: 'www',
       serviceWorker: null,
     },
-    // reactOutputTarget({
-    //   outDir: '../form-components-react/src/components/',
-    //   excludeComponents: [],
-    //   includeImportSymbols: true,
-    // }),
+    reactOutputTarget({
+      outDir: '../form-components-react/src/components/',
+      excludeComponents: [],
+      includeImportSymbols: true,
+    }),
   ],
   testing: {
     browserHeadless: 'new',
