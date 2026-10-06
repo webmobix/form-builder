@@ -1,5 +1,11 @@
 # @webmobix/form-components
 
+## 0.8.0
+
+### Minor Changes
+
+- 78af53f: allow hiding delelte button; inspector shows checkboxes left of labels; can add additional checkboxes as metadata to inspector; bump dependencies
+
 ## 0.7.0
 
 ### Minor Changes
