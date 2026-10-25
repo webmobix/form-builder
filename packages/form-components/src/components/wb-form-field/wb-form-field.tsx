@@ -2,7 +2,7 @@
 import { AttachInternals, Component, h, Prop, State, Watch } from '@stencil/core';
 import { Editor, type JSONContent } from '@tiptap/core';
 import type { FieldSubtype, FieldType, Restrictions } from '../../core';
-import { applyLink, buildExtensions, FULL_TOOLBAR_ACTIONS, isEmptyDoc, plainTextLength, removeLink, type ToolbarAction } from './richtext';
+import { applyLink, buildExtensions, FULL_TOOLBAR_ACTIONS, isEmptyDoc, parseStoredValue, plainTextLength, removeLink, type ToolbarAction } from './richtext';
 
 /**
  * Sentinel `value` for the disabled hint `<option>` so it can never collide
@@ -45,6 +45,13 @@ export class WbFormField {
   @Prop() options?: { key: string; label: string }[];
   /** When true, the control is rendered inert (not focusable/editable) but keeps its normal enabled appearance. */
   @Prop() disabled = false;
+  /**
+   * Host-supplied prefill for this field, as a raw string in the same shape the
+   * form submits. `undefined` means "no prefill" and is a no-op; a *changed*
+   * value replaces the current one, an unchanged value never clobbers what the
+   * user typed.
+   */
+  @Prop() initialValue?: string;
 
   @State() value = '';
   @State() checked = false;
@@ -63,6 +70,7 @@ export class WbFormField {
   private linkInputEl?: HTMLInputElement;
 
   componentWillLoad() {
+    this.applyInitialValue(this.initialValue);
     this.sync();
   }
 
@@ -83,6 +91,11 @@ export class WbFormField {
         this.linkActive = this.editor.isActive('link');
       });
       this.editor.on('update', () => this.sync());
+      // The editor is created empty and then prefilled through the same
+      // setContent path as later changes: a JSON doc handed to the Editor
+      // constructor is not editable under the duplicate prosemirror-model
+      // copies the workspace resolves, while setContent into a mounted view is.
+      this.applyInitialRichtext();
     }
   }
 
@@ -99,6 +112,19 @@ export class WbFormField {
     this.sync();
   }
 
+  @Watch('initialValue')
+  onInitialValueChange() {
+    if (this.type === 'richtext') {
+      // Prefill only exists once the editor mounts; componentDidLoad picks up
+      // an initialValue that arrives before then.
+      if (!this.editor) return;
+      this.applyInitialRichtext();
+      return;
+    }
+    this.applyInitialValue(this.initialValue);
+    this.sync();
+  }
+
   @Watch('placeholder')
   onPlaceholderChange() {
     // The Placeholder extension caches decorations per doc/selection
@@ -106,6 +132,57 @@ export class WbFormField {
     if (!this.editor) return;
     const { state } = this.editor;
     this.editor.view.dispatch(state.tr.setSelection(state.selection));
+  }
+
+  /**
+   * Seed the control from a prefill string, interpreted per control type:
+   * checkbox checks only for the serialized `'on'`, select selects a matching
+   * option (falling back to its hint/empty state), everything else takes the
+   * value verbatim. `undefined` (no prefill) is a no-op so absence never clears
+   * what the user typed. Richtext is handled by the editor lifecycle.
+   */
+  private applyInitialValue(initialValue: string | undefined) {
+    if (initialValue === undefined) return;
+    if (this.type === 'richtext') return;
+    if (this.type === 'checkbox') {
+      this.checked = initialValue === 'on';
+      return;
+    }
+    if (this.type === 'select') {
+      const hasMatchingOption = (this.options ?? []).some(option => option.key === initialValue);
+      this.selectHasChoice = hasMatchingOption;
+      this.value = hasMatchingOption ? initialValue : '';
+      return;
+    }
+    this.value = initialValue;
+  }
+
+  /**
+   * Load the prefilled document into a mounted editor and push the resulting
+   * value through setFormValue. Malformed/absent prefill is a no-op.
+   */
+  private applyInitialRichtext() {
+    if (!this.editor) return;
+    const doc = this.parseInitialRichtext();
+    if (!doc) return;
+    // Skip Tiptap's update cycle so we control when the form value is synced
+    // (exactly once, right below) instead of relying on the update handler.
+    this.editor.commands.setContent(doc, { emitUpdate: false });
+    this.sync();
+  }
+
+  /**
+   * Parse the prefilled richtext document. Malformed values are ignored (not
+   * thrown) with a warning; `undefined` keeps the editor's current content.
+   */
+  private parseInitialRichtext(): JSONContent | undefined {
+    if (!this.initialValue) return undefined;
+    const doc = parseStoredValue(this.initialValue);
+    if (!doc) {
+      console.warn(`<wb-form-field>: ignoring malformed rich text prefill for "${this.name}"`);
+      return undefined;
+    }
+    return doc;
   }
 
   private sync() {

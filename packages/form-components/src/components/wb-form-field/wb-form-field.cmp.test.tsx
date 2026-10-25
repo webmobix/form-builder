@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 // Components come from the built loader via vitest-setup.ts (defineCustomElements);
 // helper module imported directly for docToHtml coverage in a real DOM.
@@ -325,5 +325,69 @@ describe('docToHtml export (browser DOM)', () => {
     expect(html).not.toContain('onclick');
     expect(html).not.toContain('<script');
     expect(html).toContain('&lt;script&gt;');
+  });
+});
+
+describe('richtext prefill', () => {
+  const boldDoc = {
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello', marks: [{ type: 'bold' }] }] }],
+  };
+  // JSON uses double quotes, so a single-quoted attribute carries it verbatim.
+  const prefillAttr = (doc: unknown) => `initial-value='${JSON.stringify(doc)}'`;
+
+  test('renders a prefilled formatted document and submits its JSON', async () => {
+    const el = await mountField(`type="richtext" label="Bio" ${prefillAttr(boldDoc)}`);
+    expect(editable(el).textContent).toContain('Hello');
+    expect(editable(el).querySelector('strong')).not.toBeNull();
+    expect(parsedValue(el)).toEqual(boldDoc);
+    // content exists, so the placeholder hint is not shown
+    expect(editable(el).querySelector('p')!.hasAttribute('data-placeholder')).toBe(false);
+  });
+
+  test('a structurally empty prefilled document submits an empty string', async () => {
+    const el = await mountField(`type="richtext" label="Bio" ${prefillAttr({ type: 'doc', content: [{ type: 'paragraph' }] })}`);
+    expect(editable(el).textContent).toBe('');
+    expect(formValue(el)).toBe('');
+  });
+
+  test('unchanged prefill preserves user edits across a re-render', async () => {
+    const el = await mountField(`type="richtext" label="Bio" ${prefillAttr(boldDoc)}`);
+    await userEvent.click(editable(el));
+    await userEvent.type(editable(el), ' Typed by user');
+    await waitForTick();
+    expect(editable(el).textContent).toBe('Hello Typed by user');
+
+    // An ordinary prop update re-renders without a new prefill application.
+    (el as any).label = 'Bio (renamed)';
+    await waitForTick();
+    expect(editable(el).textContent).toBe('Hello Typed by user');
+  });
+
+  test('a changed prefill value replaces edited content', async () => {
+    const el = await mountField(`type="richtext" label="Bio" ${prefillAttr(boldDoc)}`);
+    await userEvent.click(editable(el));
+    await userEvent.keyboard('{ControlOrMeta>}a{/ControlOrMeta}');
+    await userEvent.type(editable(el), 'Typed by user');
+    await waitForTick();
+
+    const nextDoc = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Replaced' }] }] };
+    (el as any).initialValue = JSON.stringify(nextDoc);
+    await waitForTick();
+
+    expect(editable(el).textContent).toBe('Replaced');
+    expect(parsedValue(el)).toEqual(nextDoc);
+  });
+
+  test('malformed prefill is ignored with a warning, keeping the editor empty', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const el = await mountField('type="richtext" label="Bio" initial-value="not-json"');
+      expect(editable(el).textContent).toBe('');
+      expect(formValue(el)).toBe('');
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

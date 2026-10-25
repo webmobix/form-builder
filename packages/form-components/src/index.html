@@ -117,6 +117,14 @@
     </div>
 
     <div class="section">
+      <div class="section-title">Prefill from JSON</div>
+      <textarea id="prefill-input" rows="6" style="width:100%;font-family:monospace;font-size:12px;" placeholder='Paste a submitted payload like {"field.1":"Alice"}'></textarea>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+        <button type="button" id="apply-prefill">Apply prefill</button>
+      </div>
+    </div>
+
+    <div class="section">
       <div class="section-title">Rendered form</div>
       <wb-form-renderer id="renderer"></wb-form-renderer>
     </div>
@@ -141,6 +149,8 @@
       const loadBtn = document.getElementById('load-into-canvas');
       const sampleBtn = document.getElementById('load-sample');
       const deleteButtonToggle = document.getElementById('toggle-delete-button');
+      const prefillInput = document.getElementById('prefill-input');
+      const prefillBtn = document.getElementById('apply-prefill');
 
       let selectedId = null;
       let lastBuilderPayload = null;
@@ -261,6 +271,19 @@
       // each wb-form-field's name (the JSON Pointer path).
       renderer.addEventListener('wbSubmit', (e) => {
         out.textContent = JSON.stringify(e.detail, null, 2);
+      });
+
+      // ---- page → renderer: apply a pasted prefill payload ----
+      // Takes a JSON object shaped like a wbSubmit payload ({ "field.<id>": value })
+      // and hands it to renderer.setValues(). Parse failures are reported in the
+      // output block; the rendered form is left untouched.
+      prefillBtn.addEventListener('click', async () => {
+        try {
+          const parsed = JSON.parse(prefillInput.value);
+          await renderer.setValues(parsed);
+        } catch (err) {
+          out.textContent = `Error applying prefill: ${err?.message ? err.message : String(err)}`;
+        }
       });
 
       // ---- page: builder payload display / export ----

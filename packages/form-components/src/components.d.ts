@@ -54,6 +54,10 @@ export namespace Components {
          */
         "disabled": boolean;
         "initialLines"?: number;
+        /**
+          * Host-supplied prefill for this field, as a raw string in the same shape the form submits. `undefined` means "no prefill" and is a no-op; a *changed* value replaces the current one, an unchanged value never clobbers what the user typed.
+         */
+        "initialValue"?: string;
         "label": string;
         "maxHeight"?: number;
         /**
@@ -89,6 +93,14 @@ export namespace Components {
          */
         "fields": FieldMeta[];
         "setFields": (fields: FieldMeta[]) => Promise<void>;
+        /**
+          * Applies a prefill object imperatively, equivalent to setting `values`.
+         */
+        "setValues": (values: Record<string, string>) => Promise<void>;
+        /**
+          * Prefill values keyed by each data field's submission name (`field.<id>`) — the same shape `wbSubmit` emits, so a saved payload can be passed back verbatim. Applied on first render and whenever this object changes.
+         */
+        "values"?: Record<string, string>;
     }
     interface WbInspector {
         /**
@@ -273,6 +285,10 @@ declare namespace LocalJSX {
          */
         "form"?: string;
         "initialLines"?: number;
+        /**
+          * Host-supplied prefill for this field, as a raw string in the same shape the form submits. `undefined` means "no prefill" and is a no-op; a *changed* value replaces the current one, an unchanged value never clobbers what the user typed.
+         */
+        "initialValue"?: string;
         "label": string;
         "maxHeight"?: number;
         /**
@@ -308,6 +324,10 @@ declare namespace LocalJSX {
          */
         "fields"?: FieldMeta[];
         "onWbSubmit"?: (event: WbFormRendererCustomEvent<Record<string, string>>) => void;
+        /**
+          * Prefill values keyed by each data field's submission name (`field.<id>`) — the same shape `wbSubmit` emits, so a saved payload can be passed back verbatim. Applied on first render and whenever this object changes.
+         */
+        "values"?: Record<string, string>;
     }
     interface WbInspector {
         /**
@@ -343,6 +363,7 @@ declare namespace LocalJSX {
         "maxHeight": number;
         "placeholder": string;
         "disabled": boolean;
+        "initialValue": string;
     }
     interface WbInspectorAttributes {
         "showDeleteFieldButton": boolean;

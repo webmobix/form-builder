@@ -132,6 +132,7 @@ Single form field; `formAssociated: true` so it participates natively in an ance
 | `initialLines` | `number` | — | Textarea `rows` (default 3). |
 | `maxHeight` | `number` | — | Textarea `max-height` in px. |
 | `placeholder` | `string` | — | All data field types: native attribute on text/textarea, disabled hint option on select, muted helper text on date/checkbox, Tiptap hint on richtext. |
+| `initialValue` | `string` | — | Host prefill in submission form (see the renderer prefill contract). `undefined` means "no prefill" and never clears the current value. |
 
 For checkboxes the submitted value is `'on'` when checked, `''` otherwise. Number
 subtypes apply `rangeUnderflow` / `rangeOverflow` validity from `restrictions.number`.
@@ -255,6 +256,7 @@ Renders a form from `FieldMeta[]` (data fields + design elements) and submits vi
 | Prop | Type | Default |
 | --- | --- | --- |
 | `fields` | `FieldMeta[]` (mutable) | `[]` |
+| `values` | `Record<string, string>` (mutable) | — |
 
 **Events**
 
@@ -267,6 +269,47 @@ Renders a form from `FieldMeta[]` (data fields + design elements) and submits vi
 | Method | Args |
 | --- | --- |
 | `setFields` | `fields: FieldMeta[]` |
+| `setValues` | `values: Record<string, string>` |
+
+##### Prefill
+
+`values` (or `setValues(...)`) fills the rendered form. Its keys are the submission
+names `wbSubmit` emits — `field.<id>` — so a saved payload can be handed back
+verbatim, with no key translation:
+
+```html
+<wb-form-renderer id="renderer"></wb-form-renderer>
+<script>
+  const renderer = document.getElementById('renderer');
+  renderer.addEventListener('wbSubmit', (e) => {
+    // Persist e.detail, then replay it later:
+    renderer.setValues(e.detail);
+  });
+</script>
+```
+
+Contract:
+
+- **Round trip** — the object `wbSubmit` emits is the accepted prefill shape;
+  non-string primitives are coerced with `String()`, and `null`/`undefined`
+  entries count as absent (never rendered as `"null"`).
+- **No clobbering** — prefill is applied on first render and whenever `values`
+  changes. A re-render with unchanged values (e.g. after `setFields` or a canvas
+  edit) never overwrites what the user typed. A *changed* value replaces the
+  current one; omitting a key leaves the field untouched (native form reset is
+  still how you empty a form).
+- **Unknown keys** — keys matching no rendered data field (unknown ids, design
+  elements, stale fields) are ignored and reported once per application with
+  `console.warn('<wb-form-renderer>: ignoring prefill value for unknown field
+  "<key>"')`. They never create controls and never enter the submit payload.
+- **Checkbox** — only the serialized value `'on'` checks the box; `true`, `1`,
+  `'yes'`, `''` and every other value leave it unchecked.
+- **Select** — the option whose key equals the value is selected. With no
+  matching option the field falls back to its hint/empty state and submits `''`
+  (a stale key in saved data renders as "no selection", it does not throw).
+- **Rich text** — the value is the field's JSON document string, loaded into the
+  Tiptap editor. A malformed value is ignored with a warning, leaving the
+  editor's current content alone.
 
 ### React wrappers (`@webmobix/form-components-react`)
 
@@ -283,7 +326,7 @@ import { WbCanvas, WbFormRenderer } from '@webmobix/form-components-react';
   onWbChange={(e) => console.log(e.detail)}
   ref={(el) => el?.addField('text', 'Nickname')}
 />
-<WbFormRenderer fields={myFields} onWbSubmit={(e) => console.log(e.detail)} />
+<WbFormRenderer fields={myFields} values={savedValues} onWbSubmit={(e) => console.log(e.detail)} />
 ```
 
 ## Running locally

@@ -359,3 +359,166 @@ describe('wb-form-field disabled prop', () => {
     expect(input.disabled).toBe(true);
   });
 });
+
+/**
+ * Capture the value the field pushes through `ElementInternals.setFormValue`
+ * (mock-doc's version is not observable), by wrapping the FormData instance
+ * the component appends to in `sync()`.
+ */
+const captureSubmittedValues = () => {
+  const submitted: Record<string, string> = {};
+  const OrigFormData = globalThis.FormData;
+  // biome-ignore lint/complexity/useArrowFunction: must be a `function` so `new FormData()` can construct it
+  globalThis.FormData = vi.fn(function () {
+    const fd = new OrigFormData();
+    const append = fd.append.bind(fd);
+    fd.append = ((name: string, value: string | Blob) => {
+      submitted[name] = String(value);
+      append(name, value as never);
+    }) as never;
+    return fd;
+  }) as never;
+  return {
+    submitted,
+    restore: () => {
+      globalThis.FormData = OrigFormData;
+    },
+  };
+};
+
+describe('wb-form-field initialValue prefill', () => {
+  it('seeds a text input from initialValue and submits it via FormData', async () => {
+    const capture = captureSubmittedValues();
+    try {
+      const { root } = await render(<wb-form-field name="field.1" type="text" label="Name" initialValue="Alice"></wb-form-field>);
+      const input = root.shadowRoot!.querySelector('input') as HTMLInputElement;
+      expect(input.value).toBe('Alice');
+      expect(capture.submitted['field.1']).toBe('Alice');
+    } finally {
+      capture.restore();
+    }
+  });
+
+  it('seeds a textarea from initialValue', async () => {
+    const capture = captureSubmittedValues();
+    try {
+      const { root } = await render(<wb-form-field name="field.7" type="text" label="Notes" multiline initialValue="Notes"></wb-form-field>);
+      const textarea = root.shadowRoot!.querySelector('textarea') as HTMLTextAreaElement;
+      // mock-doc exposes the textarea's value as the rendered attribute
+      expect(textarea.getAttribute('value')).toBe('Notes');
+      expect(capture.submitted['field.7']).toBe('Notes');
+    } finally {
+      capture.restore();
+    }
+  });
+
+  it('seeds number and date inputs from initialValue', async () => {
+    const numberRender = await render(<wb-form-field name="field.3" type="text" subtype="number" label="Age" initialValue="42"></wb-form-field>);
+    const numberInput = numberRender.root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(numberInput.getAttribute('type')).toBe('number');
+    expect(numberInput.value).toBe('42');
+
+    const dateRender = await render(<wb-form-field name="field.4" type="date" label="Date" initialValue="2024-05-06"></wb-form-field>);
+    const dateInput = dateRender.root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(dateInput.getAttribute('type')).toBe('date');
+    expect(dateInput.value).toBe('2024-05-06');
+  });
+
+  it('leaves the control empty when initialValue is undefined', async () => {
+    const { root } = await render(<wb-form-field name="field.1" type="text" label="Name"></wb-form-field>);
+    const input = root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    expect(input.value).toBe('');
+  });
+
+  it('a changed initialValue replaces the current value and submits the new one', async () => {
+    const capture = captureSubmittedValues();
+    try {
+      const { root, instance, waitForChanges } = await render(<wb-form-field name="field.1" type="text" label="Name" initialValue="Alice"></wb-form-field>);
+      (instance as any).initialValue = 'Bob';
+      await waitForChanges();
+      const input = root.shadowRoot!.querySelector('input') as HTMLInputElement;
+      expect(input.value).toBe('Bob');
+      expect(capture.submitted['field.1']).toBe('Bob');
+    } finally {
+      capture.restore();
+    }
+  });
+
+  it('an unchanged initialValue leaves user-entered text intact', async () => {
+    const { root, instance, waitForChanges } = await render(<wb-form-field name="field.1" type="text" label="Name" initialValue="Alice"></wb-form-field>);
+    const input = root.shadowRoot!.querySelector('input') as HTMLInputElement;
+    input.value = 'Carol';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await waitForChanges();
+    expect(input.value).toBe('Carol');
+
+    // Re-setting the identical prefill string must not clobber the edit.
+    (instance as any).initialValue = 'Alice';
+    await waitForChanges();
+    expect((root.shadowRoot!.querySelector('input') as HTMLInputElement).value).toBe('Carol');
+  });
+
+  it('select prefill selects the matching option', async () => {
+    const capture = captureSubmittedValues();
+    try {
+      const { root } = await render(
+        <wb-form-field
+          name="field.2"
+          type="select"
+          label="Country"
+          placeholder="Choose one"
+          initialValue="ca"
+          options={[
+            { key: 'us', label: 'US' },
+            { key: 'ca', label: 'CA' },
+            { key: 'mx', label: 'MX' },
+          ]}
+        ></wb-form-field>,
+      );
+      const select = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
+      const options = Array.from(select.querySelectorAll('option'));
+      expect(options.find(o => o.getAttribute('value') === 'ca')!.hasAttribute('selected')).toBe(true);
+      expect(options[0].hasAttribute('selected')).toBe(false);
+      expect(capture.submitted['field.2']).toBe('ca');
+    } finally {
+      capture.restore();
+    }
+  });
+
+  it('select prefill without a matching option falls back to the hint state with an empty submitted value', async () => {
+    const capture = captureSubmittedValues();
+    try {
+      const { root } = await render(
+        <wb-form-field
+          name="field.2"
+          type="select"
+          label="Country"
+          placeholder="Choose one"
+          initialValue="zz"
+          options={[
+            { key: 'us', label: 'US' },
+            { key: 'ca', label: 'CA' },
+          ]}
+        ></wb-form-field>,
+      );
+      const select = root.shadowRoot!.querySelector('select') as HTMLSelectElement;
+      const options = Array.from(select.querySelectorAll('option'));
+      expect(options[0].getAttribute('value')).toBe('__wb-form-field-hint__');
+      expect(options[0].hasAttribute('selected')).toBe(true);
+      expect(options.some(o => o.getAttribute('value') === 'zz')).toBe(false);
+      expect(capture.submitted['field.2']).toBe('');
+    } finally {
+      capture.restore();
+    }
+  });
+
+  it('checkbox prefill checks only for the serialized on value', async () => {
+    const onRender = await render(<wb-form-field name="field.5" type="checkbox" label="Agree" initialValue="on"></wb-form-field>);
+    expect((onRender.root.shadowRoot!.querySelector('input') as HTMLInputElement).checked).toBe(true);
+
+    for (const value of ['true', 'yes', '']) {
+      const renderResult = await render(<wb-form-field name="field.5" type="checkbox" label="Agree" initialValue={value}></wb-form-field>);
+      expect((renderResult.root.shadowRoot!.querySelector('input') as HTMLInputElement).checked).toBe(false);
+    }
+  });
+});
